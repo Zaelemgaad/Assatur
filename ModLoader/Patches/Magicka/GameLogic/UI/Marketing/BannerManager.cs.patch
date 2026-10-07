@@ -1,3 +1,14 @@
-@@ -105,1 +105,1 @@
+@@ -42,9 +42,1 @@
+-			if (mActiveBanner == null)
+-			{
+-				InitialiseBanner();
+-			}
+-			else
+-			{
+-				UpdateBanner();
+-			}
+-			return mActiveBanner;
++			return null;
+@@ -105,1 +97,1 @@
 -				Logger.LogOrAssert(iConditionMet: false, $"Ad Banner Click Action {mCurrentPromotionInfo.OnClickAction.ToString()} Undefined For {mCurrentPromotionInfo.Name}");
 +                Game.Instance.Logger.Assert(Logger.Source.UISystem, $"Ad Banner Click Action {mCurrentPromotionInfo.OnClickAction} Undefined For {mCurrentPromotionInfo.Name}");

@@ -1,0 +1,553 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using JigLibX.Geometry;
+using Magicka.GameLogic;
+using Magicka.GameLogic.Entities;
+using Magicka.GameLogic.Entities.Items;
+using Magicka.Logging;
+using Magicka.Network;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
+
+namespace Magicka.Levels
+{
+	internal static class DebugArena
+	{
+		private const string LEVEL_NAME = "ch_debug_arena";
+		private const string ITEM_DIRECTORY = "Content/Data/items/wizard";
+		private const string ITEM_ASSET_PREFIX = "Data/Items/Wizard/";
+		private const string CHARACTER_ASSET_PREFIX = "Data/Characters/";
+		private const int ITEM_COLUMNS = 12;
+		private const int ITEMS_PER_PAGE = 48;
+		private const float ITEM_SPACING = 3.5f;
+		private const float MAX_ITEM_NAVMESH_DISTANCE_SQUARED = 16f;
+		private const int WAVE_SIZE = 8;
+
+		private static readonly string[] ENEMY_TYPES =
+		{
+			"goblin_warrior",
+			"orc_regular",
+			"orc_warrior",
+			"beastman_raider",
+			"dwarf_warrior",
+			"cultist",
+			"daemon_lesser",
+			"dungeons_slimecube_poison",
+			"elemental_fire",
+			"troll_forest"
+		};
+
+		private static readonly List<NonPlayerCharacter> sSpawnedEnemies = new List<NonPlayerCharacter>();
+		private static readonly List<Item> sSpawnedItems = new List<Item>();
+		private static readonly HashSet<int> sSpawnedItemTypes = new HashSet<int>();
+		private static readonly GamePadState[] sLastGamePadStates = new GamePadState[4];
+		private static List<string> sItemNames;
+		private static GameScene sInitializedScene;
+		private static KeyboardState sLastKeyboardState;
+		private static int sEnemyTypeIndex;
+		private static int sItemPageIndex;
+
+		internal static void Initialize(GameScene iScene)
+		{
+			if (!IsDebugArena(iScene) || IsNetworkClient())
+			{
+				return;
+			}
+			if (sInitializedScene == iScene)
+			{
+				return;
+			}
+			sInitializedScene = iScene;
+			sSpawnedEnemies.Clear();
+			ClearSpawnedItems(iScene);
+			sSpawnedItemTypes.Clear();
+			sLastKeyboardState = Keyboard.GetState();
+			for (int i = 0; i < sLastGamePadStates.Length; i++)
+			{
+				sLastGamePadStates[i] = GamePad.GetState((PlayerIndex)i);
+			}
+			LoadItemNames();
+			SpawnItemPage(iScene);
+			LogInfo("Debug arena ready. F5/Back+Y spawns enemies, F6/Back+X clears enemies, F7/Back+B cycles enemy type, F8/F9 or Back+RB/LB changes item page.");
+		}
+
+		internal static void Update(GameScene iScene)
+		{
+			if (!IsDebugArena(iScene) || IsNetworkClient())
+			{
+				return;
+			}
+			if (sInitializedScene != iScene)
+			{
+				Initialize(iScene);
+			}
+			UpdateKeyboard(iScene);
+			UpdateGamePads(iScene);
+		}
+
+		private static bool IsDebugArena(GameScene iScene)
+		{
+			return iScene != null && iScene.Level != null && string.Equals(iScene.Level.Name, LEVEL_NAME, StringComparison.OrdinalIgnoreCase);
+		}
+
+		private static bool IsNetworkClient()
+		{
+			NetworkState state = NetworkManager.Instance.State;
+			return state == NetworkState.Client || state == NetworkState.HotJoinClient;
+		}
+
+		private static void UpdateKeyboard(GameScene iScene)
+		{
+			KeyboardState keyboardState = Keyboard.GetState();
+			if (Pressed(keyboardState, sLastKeyboardState, Keys.F5))
+			{
+				SpawnWave(iScene);
+			}
+			if (Pressed(keyboardState, sLastKeyboardState, Keys.F6))
+			{
+				ClearSpawnedEnemies();
+			}
+			if (Pressed(keyboardState, sLastKeyboardState, Keys.F7))
+			{
+				CycleEnemyType();
+			}
+			if (Pressed(keyboardState, sLastKeyboardState, Keys.F8))
+			{
+				CycleItemPage(iScene, 1);
+			}
+			if (Pressed(keyboardState, sLastKeyboardState, Keys.F9))
+			{
+				CycleItemPage(iScene, -1);
+			}
+			sLastKeyboardState = keyboardState;
+		}
+
+		private static void UpdateGamePads(GameScene iScene)
+		{
+			for (int i = 0; i < sLastGamePadStates.Length; i++)
+			{
+				GamePadState gamePadState = GamePad.GetState((PlayerIndex)i);
+				GamePadState previousState = sLastGamePadStates[i];
+				if (gamePadState.IsConnected && gamePadState.IsButtonDown(Buttons.Back))
+				{
+					if (Pressed(gamePadState, previousState, Buttons.Y))
+					{
+						SpawnWave(iScene);
+					}
+					if (Pressed(gamePadState, previousState, Buttons.X))
+					{
+						ClearSpawnedEnemies();
+					}
+					if (Pressed(gamePadState, previousState, Buttons.B))
+					{
+						CycleEnemyType();
+					}
+					if (Pressed(gamePadState, previousState, Buttons.RightShoulder))
+					{
+						CycleItemPage(iScene, 1);
+					}
+					if (Pressed(gamePadState, previousState, Buttons.LeftShoulder))
+					{
+						CycleItemPage(iScene, -1);
+					}
+				}
+				sLastGamePadStates[i] = gamePadState;
+			}
+		}
+
+		private static bool Pressed(KeyboardState iCurrent, KeyboardState iPrevious, Keys iKey)
+		{
+			return iCurrent.IsKeyDown(iKey) && iPrevious.IsKeyUp(iKey);
+		}
+
+		private static bool Pressed(GamePadState iCurrent, GamePadState iPrevious, Buttons iButton)
+		{
+			return iCurrent.IsButtonDown(iButton) && iPrevious.IsButtonUp(iButton);
+		}
+
+		private static void LoadItemNames()
+		{
+			if (sItemNames != null)
+			{
+				return;
+			}
+			sItemNames = new List<string>();
+			if (!Directory.Exists(ITEM_DIRECTORY))
+			{
+				LogWarning("Debug arena could not find " + ITEM_DIRECTORY + ".");
+				return;
+			}
+			string[] itemFiles = Directory.GetFiles(ITEM_DIRECTORY, "*.xnb");
+			for (int i = 0; i < itemFiles.Length; i++)
+			{
+				string itemName = Path.GetFileNameWithoutExtension(itemFiles[i]);
+				if (itemName.StartsWith("weapon_", StringComparison.OrdinalIgnoreCase) || itemName.StartsWith("staff_", StringComparison.OrdinalIgnoreCase))
+				{
+					sItemNames.Add(itemName);
+				}
+			}
+			sItemNames.Sort(StringComparer.OrdinalIgnoreCase);
+		}
+
+		private static void SpawnItemPage(GameScene iScene)
+		{
+			ClearSpawnedItems(iScene);
+			if (sItemNames == null || sItemNames.Count == 0)
+			{
+				LogWarning("Debug arena has no weapon or staff pickups to spawn.");
+				return;
+			}
+			int pageCount = GetItemPageCount();
+			if (sItemPageIndex >= pageCount)
+			{
+				sItemPageIndex = 0;
+			}
+			if (sItemPageIndex < 0)
+			{
+				sItemPageIndex = pageCount - 1;
+			}
+			int startIndex = sItemPageIndex * ITEMS_PER_PAGE;
+			int itemCount = Math.Min(ITEMS_PER_PAGE, sItemNames.Count - startIndex);
+			Matrix start = GetStartTransform(iScene);
+			GetItemLayout(iScene, start, itemCount, out var anchor, out var columnStep, out var rowStep);
+			int spawned = 0;
+			for (int i = 0; i < itemCount; i++)
+			{
+				int column = i % ITEM_COLUMNS;
+				int row = i / ITEM_COLUMNS;
+				Vector3 position = anchor + columnStep * column + rowStep * row;
+				if (TryGetItemPosition(iScene, position, out position))
+				{
+					SpawnItem(iScene, sItemNames[startIndex + i], position);
+					spawned++;
+				}
+			}
+			LogInfo("Debug arena item page " + (sItemPageIndex + 1) + "/" + pageCount + ": spawned " + spawned + " pickups.");
+		}
+
+		private static void SpawnItem(GameScene iScene, string iItemName, Vector3 iPosition)
+		{
+			try
+			{
+				Item template = iScene.PlayState.Content.Load<Item>(ITEM_ASSET_PREFIX + iItemName);
+				Item item = new Item(iScene.PlayState, null);
+				template.Copy(item);
+				item.Detach();
+				item.IgnoreTractorPull = true;
+				Matrix orientation = Matrix.Identity;
+				item.Body.MoveTo(iPosition, orientation);
+				iScene.PlayState.EntityManager.AddEntity(item);
+				item.Body.Immovable = true;
+				item.Body.EnableBody();
+				sSpawnedItems.Add(item);
+				sSpawnedItemTypes.Add(item.Type);
+			}
+			catch (Exception exception)
+			{
+				LogWarning("Debug arena skipped item " + iItemName + ": " + exception.Message);
+			}
+		}
+
+		private static void SpawnWave(GameScene iScene)
+		{
+			string enemyType = ENEMY_TYPES[sEnemyTypeIndex];
+			CharacterTemplate template = LoadCharacterTemplate(iScene, enemyType);
+			if (template == null)
+			{
+				LogWarning("Debug arena could not load enemy template " + enemyType + ".");
+				return;
+			}
+			Matrix start = GetStartTransform(iScene);
+			Vector3 right = Flatten(start.Right, Vector3.Right);
+			Vector3 forward = Flatten(start.Forward, Vector3.Forward);
+			Vector3 center = GetPlayerCenter(start.Translation);
+			Vector3 rowCenter = center + forward * 18f;
+			for (int i = 0; i < WAVE_SIZE; i++)
+			{
+				float offset = ((float)i - ((float)WAVE_SIZE - 1f) * 0.5f) * 3.2f;
+				Vector3 position = rowCenter + right * offset;
+				iScene.LevelModel.NavMesh.GetNearestPosition(ref position, out position, template.MoveAbilities);
+				position = ProjectToGround(iScene, position, 0f);
+				NonPlayerCharacter npc = NonPlayerCharacter.GetInstance(iScene.PlayState);
+				if (npc == null)
+				{
+					break;
+				}
+				npc.Initialize(template, 0, position, 0);
+				Matrix orientation = Matrix.Identity;
+				orientation.Forward = -forward;
+				orientation.Right = Vector3.Cross(orientation.Forward, Vector3.Up);
+				orientation.Up = Vector3.Up;
+				npc.CharacterBody.Orientation = orientation;
+				npc.CharacterBody.DesiredDirection = orientation.Forward;
+				npc.Faction = Factions.EVIL;
+				npc.RemoveAfterDeath = true;
+				iScene.PlayState.EntityManager.AddEntity(npc);
+				npc.Body.EnableBody();
+				sSpawnedEnemies.Add(npc);
+			}
+			LogInfo("Debug arena spawned " + WAVE_SIZE + " " + enemyType + ".");
+		}
+
+		private static void GetItemLayout(GameScene iScene, Matrix iStart, int iItemCount, out Vector3 oAnchor, out Vector3 oColumnStep, out Vector3 oRowStep)
+		{
+			Vector3 right = Flatten(iStart.Right, Vector3.Right);
+			Vector3 forward = Flatten(iStart.Forward, Vector3.Forward);
+			Vector3[] rowDirections =
+			{
+				forward,
+				-forward,
+				right,
+				-right
+			};
+			Vector3[] columnDirections =
+			{
+				right,
+				right,
+				forward,
+				forward
+			};
+			float[] centerOffsets =
+			{
+				0f,
+				24f,
+				40f,
+				56f
+			};
+			int rows = (iItemCount + ITEM_COLUMNS - 1) / ITEM_COLUMNS;
+			float width = (ITEM_COLUMNS - 1) * ITEM_SPACING;
+			float depth = (rows - 1) * ITEM_SPACING;
+			float bestScore = float.MaxValue;
+			oAnchor = iStart.Translation - right * (width * 0.5f) - forward * (depth * 0.5f);
+			oColumnStep = right * ITEM_SPACING;
+			oRowStep = forward * ITEM_SPACING;
+			for (int direction = 0; direction < rowDirections.Length; direction++)
+			{
+				Vector3 rowDirection = rowDirections[direction];
+				Vector3 columnDirection = columnDirections[direction];
+				for (int offset = 0; offset < centerOffsets.Length; offset++)
+				{
+					Vector3 center = iStart.Translation + rowDirection * centerOffsets[offset];
+					Vector3 anchor = center - columnDirection * (width * 0.5f) - rowDirection * (depth * 0.5f);
+					float score = ScoreLayout(iScene, anchor, columnDirection * ITEM_SPACING, rowDirection * ITEM_SPACING, iItemCount);
+					if (score < bestScore)
+					{
+						bestScore = score;
+						oAnchor = anchor;
+						oColumnStep = columnDirection * ITEM_SPACING;
+						oRowStep = rowDirection * ITEM_SPACING;
+					}
+				}
+			}
+		}
+
+		private static float ScoreLayout(GameScene iScene, Vector3 iAnchor, Vector3 iColumnStep, Vector3 iRowStep, int iItemCount)
+		{
+			float score = 0f;
+			for (int i = 0; i < iItemCount; i++)
+			{
+				int column = i % ITEM_COLUMNS;
+				int row = i / ITEM_COLUMNS;
+				Vector3 position = iAnchor + iColumnStep * column + iRowStep * row;
+				float distanceSquared = iScene.LevelModel.NavMesh.GetNearestPosition(ref position, out var navPosition, MovementProperties.Default);
+				score += distanceSquared;
+				if (distanceSquared > MAX_ITEM_NAVMESH_DISTANCE_SQUARED || !TryProjectToGround(iScene, navPosition, 0.9f, out var _))
+				{
+					score += 10000f + distanceSquared * 100f;
+				}
+			}
+			return score;
+		}
+
+		private static bool TryGetItemPosition(GameScene iScene, Vector3 iPosition, out Vector3 oPosition)
+		{
+			float distanceSquared = iScene.LevelModel.NavMesh.GetNearestPosition(ref iPosition, out var navPosition, MovementProperties.Default);
+			if (distanceSquared > MAX_ITEM_NAVMESH_DISTANCE_SQUARED)
+			{
+				oPosition = default(Vector3);
+				return false;
+			}
+			return TryProjectToGround(iScene, navPosition, 0.9f, out oPosition);
+		}
+
+		private static CharacterTemplate LoadCharacterTemplate(GameScene iScene, string iEnemyType)
+		{
+			int hash = iEnemyType.GetHashCodeCustom();
+			if (!CharacterTemplate.HasCachedTemplate(hash))
+			{
+				iScene.PlayState.Content.Load<CharacterTemplate>(CHARACTER_ASSET_PREFIX + iEnemyType);
+			}
+			return CharacterTemplate.GetCachedTemplate(hash);
+		}
+
+		private static void ClearSpawnedEnemies()
+		{
+			int count = 0;
+			for (int i = 0; i < sSpawnedEnemies.Count; i++)
+			{
+				NonPlayerCharacter npc = sSpawnedEnemies[i];
+				if (npc != null && !npc.Dead)
+				{
+					npc.Terminate(true, false, false);
+					count++;
+				}
+			}
+			sSpawnedEnemies.Clear();
+			LogInfo("Debug arena cleared " + count + " spawned enemies.");
+		}
+
+		private static void CycleEnemyType()
+		{
+			sEnemyTypeIndex++;
+			if (sEnemyTypeIndex >= ENEMY_TYPES.Length)
+			{
+				sEnemyTypeIndex = 0;
+			}
+			LogInfo("Debug arena enemy type: " + ENEMY_TYPES[sEnemyTypeIndex] + ".");
+		}
+
+		private static void CycleItemPage(GameScene iScene, int iDirection)
+		{
+			if (sItemNames == null || sItemNames.Count == 0)
+			{
+				return;
+			}
+			int pageCount = GetItemPageCount();
+			sItemPageIndex = (sItemPageIndex + iDirection) % pageCount;
+			if (sItemPageIndex < 0)
+			{
+				sItemPageIndex += pageCount;
+			}
+			SpawnItemPage(iScene);
+		}
+
+		private static int GetItemPageCount()
+		{
+			if (sItemNames == null || sItemNames.Count == 0)
+			{
+				return 0;
+			}
+			return (sItemNames.Count + ITEMS_PER_PAGE - 1) / ITEMS_PER_PAGE;
+		}
+
+		private static void ClearSpawnedItems(GameScene iScene)
+		{
+			List<Item> heldItems = new List<Item>();
+			for (int i = 0; i < sSpawnedItems.Count; i++)
+			{
+				Item item = sSpawnedItems[i];
+				if (item != null)
+				{
+					if (item.Owner == null)
+					{
+						item.Kill();
+					}
+					else
+					{
+						heldItems.Add(item);
+					}
+				}
+			}
+			sSpawnedItems.Clear();
+			sSpawnedItems.AddRange(heldItems);
+			if (iScene != null && iScene.PlayState != null && iScene.PlayState.EntityManager != null && sSpawnedItemTypes.Count > 0)
+			{
+				var entities = iScene.PlayState.EntityManager.Entities;
+				for (int i = 0; i < entities.Count; i++)
+				{
+					Item item = entities[i] as Item;
+					if (item != null && item.Owner == null && !item.Dead && sSpawnedItemTypes.Contains(item.Type))
+					{
+						item.Kill();
+					}
+				}
+				iScene.PlayState.EntityManager.RemoveDeadEntities();
+			}
+		}
+
+		private static Matrix GetStartTransform(GameScene iScene)
+		{
+			Matrix start;
+			if (iScene.TryGetLocator("start0".GetHashCodeCustom(), out start))
+			{
+				return start;
+			}
+			if (iScene.TryGetLocator("start1".GetHashCodeCustom(), out start))
+			{
+				return start;
+			}
+			start = Matrix.Identity;
+			start.Translation = GetPlayerCenter(Vector3.Zero);
+			return start;
+		}
+
+		private static Vector3 GetPlayerCenter(Vector3 iFallback)
+		{
+			Vector3 center = Vector3.Zero;
+			int count = 0;
+			for (int i = 0; i < Game.Instance.Players.Length; i++)
+			{
+				if (Game.Instance.Players[i].Connected && Game.Instance.Players[i].Avatar != null && !Game.Instance.Players[i].Avatar.Dead)
+				{
+					center += Game.Instance.Players[i].Avatar.Position;
+					count++;
+				}
+			}
+			if (count == 0)
+			{
+				return iFallback;
+			}
+			return center / count;
+		}
+
+		private static Vector3 ProjectToGround(GameScene iScene, Vector3 iPosition, float iLift)
+		{
+			if (TryProjectToGround(iScene, iPosition, iLift, out var position))
+			{
+				return position;
+			}
+			iPosition.Y += iLift;
+			return iPosition;
+		}
+
+		private static bool TryProjectToGround(GameScene iScene, Vector3 iPosition, float iLift, out Vector3 oPosition)
+		{
+			Segment segment = default(Segment);
+			segment.Origin = iPosition + Vector3.Up * 20f;
+			segment.Delta = Vector3.Down * 80f;
+			float fraction;
+			Vector3 hitPosition;
+			Vector3 hitNormal;
+			if (iScene.SegmentIntersect(out fraction, out hitPosition, out hitNormal, segment))
+			{
+				hitPosition.Y += iLift;
+				oPosition = hitPosition;
+				return true;
+			}
+			oPosition = default(Vector3);
+			return false;
+		}
+
+		private static Vector3 Flatten(Vector3 iVector, Vector3 iFallback)
+		{
+			iVector.Y = 0f;
+			if (iVector.LengthSquared() < 0.0001f)
+			{
+				return iFallback;
+			}
+			iVector.Normalize();
+			return iVector;
+		}
+
+		private static void LogInfo(string iMessage)
+		{
+			Game.Instance.Logger.Info(Logger.Source.Levels, iMessage);
+		}
+
+		private static void LogWarning(string iMessage)
+		{
+			Game.Instance.Logger.Warning(Logger.Source.Levels, iMessage);
+		}
+	}
+}

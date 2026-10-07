@@ -8,3 +8,30 @@
 +        public static int ElementIndex(Elements iElement)
 @@ -399,0 +400,1 @@
 +
+@@ -832,1 +834,25 @@
++			if (iMagnitude <= 0f)
++			{
++				return 0f;
++			}
++			float amount;
++			if (iMagnitude <= SpellManager.VANILLA_SPELL_QUEUE_CAPACITY)
++			{
+-			return iBaseDamage * (float)Math.Sqrt(iMagnitude);
++				amount = iBaseDamage * (float)Math.Sqrt(iMagnitude);
++			}
++			else
++			{
++				float num = iMagnitude / SpellManager.VANILLA_SPELL_QUEUE_CAPACITY;
++				amount = iBaseDamage * (float)Math.Sqrt(SpellManager.VANILLA_SPELL_QUEUE_CAPACITY) * num * num;
++			}
++			return amount * HighElementBreakpointMultiplier(iMagnitude);
++		}
++
++		private static float HighElementBreakpointMultiplier(float iMagnitude)
++		{
++			if (iMagnitude < 10f)
++			{
++				return 1f;
++			}
++			int num = (int)Math.Floor((iMagnitude - 10f) / 5f) + 1;
++			return (float)Math.Pow(2.0, num);

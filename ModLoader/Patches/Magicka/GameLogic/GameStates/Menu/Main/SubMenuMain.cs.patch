@@ -1,0 +1,35 @@
+@@ -46,0 +46,2 @@
++		private const int DEFAULT_SELECTED_POSITION = (int)MenuItemId.Adventure;
++
+@@ -68,1 +70,1 @@
+-			mSelectedPosition = 0;
++			mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -85,1 +87,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -91,4 +93,0 @@
+-				case 1:
+-				case 2:
+-					mSelectedPosition = 0;
+-					break;
+@@ -122,1 +120,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -129,1 +127,1 @@
+-					mSelectedPosition = 1;
++					mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -155,1 +153,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -194,1 +192,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -233,1 +231,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -246,1 +244,1 @@
+-				mSelectedPosition = 0;
++				mSelectedPosition = DEFAULT_SELECTED_POSITION;
+@@ -289,1 +287,1 @@
+-			mSelectedPosition = 0;
++			mSelectedPosition = DEFAULT_SELECTED_POSITION;

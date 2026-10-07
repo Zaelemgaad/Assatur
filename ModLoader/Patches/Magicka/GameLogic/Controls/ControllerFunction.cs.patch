@@ -1,0 +1,11 @@
+@@ -29,0 +29,10 @@
++		Element_Fire,
++		Element_Earth,
++		Element_Lightning,
++		Element_Arcane,
++		Element_Cold,
++		Element_Shield,
++		Element_Water,
++		Element_Life,
++		Cast_Push,
++		Cast_Tome_Magick,

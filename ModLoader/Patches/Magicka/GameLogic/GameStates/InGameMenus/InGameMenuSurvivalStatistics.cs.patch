@@ -1,0 +1,9 @@
+@@ -70,1 +70,1 @@
+-		private int mScoreCount;
++		private uint mScoreCount;
+@@ -72,1 +72,1 @@
+-		private int mTargetScore;
++		private uint mTargetScore;
+@@ -331,1 +331,1 @@
+-				mScoreCount = (int)((float)mTargetScore * (mDelay / 1f));
++				mScoreCount = ChallengeScore.FromDouble((double)mTargetScore * (mDelay / 1f));

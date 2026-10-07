@@ -1,0 +1,106 @@
+namespace Magicka.GameLogic.Statistics
+{
+	internal static class ChallengeScore
+	{
+		public static uint Add(uint iCurrentScore, uint iScoreToAdd)
+		{
+			ulong result = (ulong)iCurrentScore + iScoreToAdd;
+			if (result > uint.MaxValue)
+			{
+				return uint.MaxValue;
+			}
+			return (uint)result;
+		}
+
+		public static uint Add(uint iCurrentScore, long iScoreToAdd)
+		{
+			if (iScoreToAdd < 0L)
+			{
+				if (iScoreToAdd == long.MinValue)
+				{
+					return 0u;
+				}
+				ulong penalty = (ulong)(-iScoreToAdd);
+				if (penalty >= iCurrentScore)
+				{
+					return 0u;
+				}
+				return iCurrentScore - (uint)penalty;
+			}
+			return Add(iCurrentScore, FromLong(iScoreToAdd));
+		}
+
+		public static uint ApplyDelta(uint iCurrentScore, int iScoreValue, long iMultiplier)
+		{
+			return Add(iCurrentScore, MultiplySigned(iScoreValue, iMultiplier));
+		}
+
+		public static uint Multiply(int iScoreValue, long iMultiplier)
+		{
+			return ApplyDelta(0u, iScoreValue, iMultiplier);
+		}
+
+		public static long MultiplySigned(int iScoreValue, long iMultiplier)
+		{
+			return MultiplySigned((long)iScoreValue, iMultiplier);
+		}
+
+		public static long MultiplySigned(long iScoreValue, long iMultiplier)
+		{
+			decimal result = (decimal)iScoreValue * iMultiplier;
+			if (result >= long.MaxValue)
+			{
+				return long.MaxValue;
+			}
+			if (result <= long.MinValue)
+			{
+				return long.MinValue;
+			}
+			return (long)result;
+		}
+
+		public static uint ApplyMultiplier(uint iScore, float iMultiplier)
+		{
+			if (iScore == 0u || iMultiplier <= 0f)
+			{
+				return 0u;
+			}
+			return FromDouble((double)iScore * iMultiplier);
+		}
+
+		public static uint FromLong(long iScore)
+		{
+			if (iScore <= 0L)
+			{
+				return 0u;
+			}
+			if (iScore >= uint.MaxValue)
+			{
+				return uint.MaxValue;
+			}
+			return (uint)iScore;
+		}
+
+		public static uint FromDouble(double iScore)
+		{
+			if (double.IsNaN(iScore) || iScore <= 0.0)
+			{
+				return 0u;
+			}
+			if (iScore >= uint.MaxValue)
+			{
+				return uint.MaxValue;
+			}
+			return (uint)iScore;
+		}
+
+		public static int ToSteamScore(uint iScore)
+		{
+			if (iScore > int.MaxValue)
+			{
+				return int.MaxValue;
+			}
+			return (int)iScore;
+		}
+	}
+}

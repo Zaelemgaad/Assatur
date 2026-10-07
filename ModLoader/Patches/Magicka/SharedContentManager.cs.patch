@@ -1,0 +1,27 @@
+@@ -46,1 +46,2 @@
++				string referenceKey = GetReferenceKey(assetName, typeof(T));
+-				if (!mReferences.TryGetValue(assetName, out var value))
++				if (!mReferences.TryGetValue(referenceKey, out var value))
+@@ -48,1 +49,1 @@
+-					value = new ReferencedAsset(assetName);
++					value = new ReferencedAsset(referenceKey);
+@@ -58,1 +59,1 @@
+-					if (!mReferences.ContainsKey(assetName))
++					if (!mReferences.ContainsKey(referenceKey))
+@@ -60,1 +61,1 @@
+-						mReferences.Add(assetName, value);
++						mReferences.Add(referenceKey, value);
+@@ -131,0 +132,5 @@
++		private static string GetReferenceKey(string iPath, Type iType)
++		{
++			return iPath + "|" + iType.FullName;
++		}
++
+@@ -134,0 +140,1 @@
++			string referenceKey = GetReferenceKey(assetName, typeof(T));
+@@ -135,1 +142,1 @@
+-			if (!mLoadedAssets.TryGetValue(assetName, out var value))
++			if (!mLoadedAssets.TryGetValue(referenceKey, out var value))
+@@ -139,1 +146,1 @@
+-			mLoadedAssets[assetName] = value + 1;
++			mLoadedAssets[referenceKey] = value + 1;

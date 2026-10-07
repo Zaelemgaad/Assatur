@@ -1,0 +1,209 @@
+using System;
+using System.Collections.Generic;
+using Magicka.Audio;
+using Magicka.CoreFramework.GameSystem.HUDCustomisation.BuffTracking;
+using Magicka.GameLogic.Entities.Buffs;
+using Magicka.GameLogic.GameStates;
+using Magicka.GameLogic.Spells;
+using Magicka.Graphics;
+using Magicka.Network;
+using Microsoft.Xna.Framework;
+using PolygonHead;
+
+namespace Magicka.GameLogic.Entities.Abilities.SpecialAbilities
+{
+	internal class PerformanceEnchantmentStable : SpecialAbility, IAbilityEffect
+	{
+		private const float BOOST_TTL = 6f;
+
+		private const float BOOST_RESISTANCE = 0.5f;
+
+		private const float BOOST_DAMAGE = 2f;
+
+		private static List<PerformanceEnchantmentStable> sCache = new List<PerformanceEnchantmentStable>();
+
+		private static List<PerformanceEnchantmentStable> sActiveEnchantments = new List<PerformanceEnchantmentStable>();
+
+		private static readonly int EFFECT = "special_woot_performance".GetHashCodeCustom();
+
+		private static readonly int DISPLAY_NAME = "#magick_performance_stable".GetHashCodeCustom();
+
+		private static readonly int SOUND_BUFF = "woot_magick_enchantment_buff".GetHashCodeCustom();
+
+		private float mTTL;
+
+		private Character mOwner;
+
+		private VisualEffectReference mEffect;
+
+		public bool IsDead
+		{
+			get
+			{
+				if (mTTL <= 0f)
+				{
+					if (mOwner != null)
+					{
+						mOwner.ClearAura();
+					}
+					return true;
+				}
+				return false;
+			}
+		}
+
+		public static PerformanceEnchantmentStable GetInstance()
+		{
+			if (sCache.Count > 0)
+			{
+				PerformanceEnchantmentStable performanceEnchantment = sCache[sCache.Count - 1];
+				sCache.RemoveAt(sCache.Count - 1);
+				sActiveEnchantments.Add(performanceEnchantment);
+				return performanceEnchantment;
+			}
+			PerformanceEnchantmentStable performanceEnchantment2 = new PerformanceEnchantmentStable();
+			sActiveEnchantments.Add(performanceEnchantment2);
+			return performanceEnchantment2;
+		}
+
+		public static void InitializeCache(int iNr)
+		{
+			sCache = new List<PerformanceEnchantmentStable>(iNr);
+			sActiveEnchantments = new List<PerformanceEnchantmentStable>(iNr);
+			for (int i = 0; i < iNr; i++)
+			{
+				sCache.Add(new PerformanceEnchantmentStable());
+			}
+		}
+
+		public PerformanceEnchantmentStable()
+			: base(Animations.cast_magick_self, DISPLAY_NAME)
+		{
+			mTTL = BOOST_TTL;
+			mMagickType = MagickType.PerformanceEnchantment;
+		}
+
+		public PerformanceEnchantmentStable(Animations iAnimation)
+			: base(iAnimation, DISPLAY_NAME)
+		{
+			mTTL = BOOST_TTL;
+			mMagickType = MagickType.PerformanceEnchantment;
+		}
+
+		public override bool Execute(Vector3 iPosition, PlayState iPlayState)
+		{
+			throw new Exception("PerformanceEnchantmentStable has to be cast by a character!");
+		}
+
+		public override bool Execute(ISpellCaster iOwner, PlayState iPlayState)
+		{
+			return Execute(iOwner, iPlayState, iSound: true);
+		}
+
+		public bool Execute(ISpellCaster iOwner, PlayState iPlayState, bool iSound)
+		{
+			if (!(iOwner is Character))
+			{
+				OnRemove();
+				return false;
+			}
+			for (int i = 0; i < sActiveEnchantments.Count; i++)
+			{
+				if (sActiveEnchantments[i].mOwner == iOwner)
+				{
+					sActiveEnchantments[i].mTTL = BOOST_TTL;
+					Vector3 iDirection = iOwner.Direction;
+					Vector3 iPosition = iOwner.Position;
+					EffectManager.Instance.Stop(ref sActiveEnchantments[i].mEffect);
+					EffectManager.Instance.StartEffect(EFFECT, ref iPosition, ref iDirection, out sActiveEnchantments[i].mEffect);
+					if (iSound)
+					{
+						AudioManager.Instance.PlayCue(Banks.Additional, SOUND_BUFF, iOwner.AudioEmitter);
+					}
+					OnRemove();
+					return true;
+				}
+			}
+			mOwner = iOwner as Character;
+			mTTL = BOOST_TTL;
+			if (mOwner != null)
+			{
+				Boost(iSound);
+				SpellManager.Instance.AddSpellEffect(this);
+				return true;
+			}
+			OnRemove();
+			return false;
+		}
+
+		public void Update(DataChannel iDataChannel, float iDeltaTime)
+		{
+			mTTL -= iDeltaTime;
+			if (mOwner == null || mOwner.CharacterBody == null)
+			{
+				return;
+			}
+			if (mOwner.CharacterBody.IsBodyEnabled)
+			{
+				float num = (float)Math.Pow(0.5, Math.Max(mTTL, 0f));
+				mOwner.CharacterBody.SpeedMultiplier *= 1f + (1f - num);
+			}
+			else
+			{
+				mTTL = 0f;
+			}
+			Vector3 iDirection = mOwner.Direction;
+			Vector3 iPosition = mOwner.Position;
+			EffectManager.Instance.UpdatePositionDirection(ref mEffect, ref iPosition, ref iDirection);
+		}
+
+		public void Boost(bool iSound)
+		{
+			Resistance iResistance = default(Resistance);
+			iResistance.ResistanceAgainst = Elements.All;
+			iResistance.Multiplier = BOOST_RESISTANCE;
+			AuraBuff iAura = new AuraBuff(new BuffStorage(new BuffResistance(iResistance), VisualCategory.Defensive, Spell.SHIELDCOLOR));
+			AuraStorage resistanceAura = new AuraStorage(iAura, AuraTarget.Self, AuraType.Buff, 0, mTTL, 0f, VisualCategory.Special, Spell.SHIELDCOLOR, null, Factions.NONE);
+			mOwner.AddAura(ref resistanceAura, iSelfCasted: true, Buff.BuffType.PerformanceEnchantment);
+			BuffBoostDamage iBuff = new BuffBoostDamage(new Damage(AttackProperties.Damage, Elements.All, BOOST_DAMAGE, BOOST_DAMAGE));
+			BuffStorage iBuff2 = new BuffStorage(iBuff, VisualCategory.Offensive, default(Vector3));
+			AuraBuff iAura2 = new AuraBuff(iBuff2);
+			AuraStorage damageAura = new AuraStorage(iAura2, AuraTarget.Self, AuraType.Buff, 0, mTTL, 0f, VisualCategory.None, default(Vector3), null, Factions.NONE);
+			mOwner.AddAura(ref damageAura, iSelfCasted: true, Buff.BuffType.PerformanceEnchantment);
+			Vector3 iDirection = mOwner.Direction;
+			Vector3 iPosition = mOwner.Position;
+			EffectManager.Instance.StartEffect(EFFECT, ref iPosition, ref iDirection, out mEffect);
+			if (iSound)
+			{
+				AudioManager.Instance.PlayCue(Banks.Additional, SOUND_BUFF, mOwner.AudioEmitter);
+			}
+		}
+
+		public void OnRemove()
+		{
+			mOwner = null;
+			sActiveEnchantments.Remove(this);
+			sCache.Add(this);
+			if (EffectManager.Instance.IsActive(ref mEffect))
+			{
+				EffectManager.Instance.Stop(ref mEffect);
+			}
+		}
+
+		public override void GetNetworkMessage(ref NetworkSpellCastMessage iMsg)
+		{
+			iMsg.TTL = mTTL;
+			iMsg.Owner = (ushort)((mOwner != null) ? mOwner.Handle : 0);
+		}
+
+		public override void NetworkMessage(ref NetworkSpellCastMessage iMsg)
+		{
+			ISpellCaster spellCaster = Entity.GetFromHandle(iMsg.Owner) as ISpellCaster;
+			if (spellCaster != null)
+			{
+				Execute(spellCaster, PlayState.RecentPlayState);
+				mTTL = iMsg.TTL;
+			}
+		}
+	}
+}

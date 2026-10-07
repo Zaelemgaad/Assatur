@@ -1,0 +1,33 @@
+@@ -361,1 +361,1 @@
+-					else if (mSteamLeaderboards.Count > mChallenge && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num)
++					else if (HasOnlineLeaderboard() && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num)
+@@ -378,1 +378,1 @@
+-					else if (mSteamLeaderboards.Count > mChallenge && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
++					else if (HasOnlineLeaderboard() && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
+@@ -519,1 +519,1 @@
+-				else if (mSteamLeaderboards.Count > mChallenge && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
++				else if (HasOnlineLeaderboard() && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
+@@ -577,1 +577,1 @@
+-				else if (mSteamLeaderboards.Count > mChallenge && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
++				else if (HasOnlineLeaderboard() && SteamUserStats.GetLeaderboardEntryCount(mSteamLeaderboards[mChallenge]) > num2)
+@@ -738,0 +738,5 @@
++		private bool HasOnlineLeaderboard()
++		{
++			return StatisticsManager.Instance.HasOnlineLeaderboard(mChallenge);
++		}
++
+@@ -813,1 +818,1 @@
+-				if (mSteamLeaderboards.Count > mChallenge)
++				if (HasOnlineLeaderboard())
+@@ -824,0 +829,11 @@
++				}
++				else
++				{
++					mRankColumn.SetText("");
++					mNameColumn.SetText("");
++					mWavesColumn.SetText("");
++					mScoreColumn.SetText("");
++					mListBottom.Clear();
++					mListBottom.Append(0);
++					mListTop.Clear();
++					mListTop.Append(0);

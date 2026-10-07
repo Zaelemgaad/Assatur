@@ -1,0 +1,130 @@
+@@ -249,0 +249,24 @@
++
++			public int SortOrder = int.MaxValue;
++
++			public static int CompareByOrder(RobeRep A, RobeRep B)
++			{
++				if (A == null)
++				{
++					if (B == null)
++					{
++						return 0;
++					}
++					return -1;
++				}
++				if (B == null)
++				{
++					return 1;
++				}
++				int num = A.SortOrder.CompareTo(B.SortOrder);
++				if (num != 0)
++				{
++					return num;
++				}
++				return A.OriginalIndex.CompareTo(B.OriginalIndex);
++			}
+@@ -1028,0 +1052,1 @@
++					robeRep.SortOrder = playableAvatar.SortOrder;
+@@ -1092,0 +1117,1 @@
++			robeRep.SortOrder = iAvatar.SortOrder;
+@@ -1108,0 +1134,1 @@
++			robeRep.SortOrder = iAvatar.SortOrder;
+@@ -1200,0 +1227,1 @@
++						robeRep.SortOrder = playableAvatar.SortOrder;
+@@ -1255,0 +1283,23 @@
++		private static bool SamePlayableAvatar(Profile.PlayableAvatar iCurrent, Profile.PlayableAvatar iNext)
++		{
++			return string.Equals(iCurrent.Name, iNext.Name, StringComparison.OrdinalIgnoreCase) && string.Equals(iCurrent.TypeName, iNext.TypeName, StringComparison.OrdinalIgnoreCase);
++		}
++
++		private static void MarkLoadoutResetIfAvatarChanged(Player iPlayer, Profile.PlayableAvatar iAvatar)
++		{
++			if (iPlayer == null || iPlayer.Gamer == null || iPlayer.Gamer == Gamer.INVALID_GAMER)
++			{
++				return;
++			}
++			if (!SamePlayableAvatar(iPlayer.Gamer.Avatar, iAvatar))
++			{
++				iPlayer.ResetLoadoutFromAvatarTemplate = true;
++			}
++		}
++
++		private static void AssignPlayerAvatar(Player iPlayer, Profile.PlayableAvatar iAvatar)
++		{
++			MarkLoadoutResetIfAvatarChanged(iPlayer, iAvatar);
++			iPlayer.Gamer.Avatar = iAvatar;
++		}
++
+@@ -1290,1 +1341,1 @@
+-					if (player.Connected && !array[j] && player.Gamer.Avatar == playableAvatar)
++					if (player.Connected && !array[j] && SamePlayableAvatar(player.Gamer.Avatar, playableAvatar))
+@@ -1316,1 +1367,1 @@
+-						player2.Gamer.Avatar = playableAvatar;
++						AssignPlayerAvatar(player2, playableAvatar);
+@@ -1372,1 +1423,1 @@
+-			iSender.Player.Gamer.Avatar = playableAvatar;
++			AssignPlayerAvatar(iSender.Player, playableAvatar);
+@@ -1509,1 +1560,1 @@
+-					mRobeRepresentations.Sort(SelectableObjectRep.CompareRep);
++					mRobeRepresentations.Sort(RobeRep.CompareByOrder);
+@@ -3544,0 +3595,4 @@
++			if (iSender.Player.Gamer != Gamer.INVALID_GAMER && mCurrentState == State.Normal && (mSelectedPosition == -1 || mSelectedPosition == iD) && TryBeginAvatarCustomization(iSender))
++			{
++				return;
++			}
+@@ -3618,1 +3673,1 @@
+-					iSender.Player.Gamer.Avatar = playableAvatar;
++					AssignPlayerAvatar(iSender.Player, playableAvatar);
+@@ -3956,1 +4011,6 @@
+-			if (iSender.Player == null || !iSender.Player.Connected)
++			TryBeginAvatarCustomization(iSender);
++		}
++
++		private bool TryBeginAvatarCustomization(Controller iSender)
++		{
++			if (iSender.Player == null || !iSender.Player.Connected || iSender.Player.Gamer == Gamer.INVALID_GAMER)
+@@ -3958,1 +4018,1 @@
+-				return;
++				return false;
+@@ -3961,1 +4021,1 @@
+-			if (mPlayerSlots[iD].State != 0)
++			if (mPlayerSlots[iD].State != GamerState.Open)
+@@ -3963,1 +4023,1 @@
+-				return;
++				return false;
+@@ -3984,0 +4044,1 @@
++			return true;
+@@ -5063,1 +5124,1 @@
+-												iSender.Player.Gamer.Avatar = playableAvatar;
++												AssignPlayerAvatar(iSender.Player, playableAvatar);
+@@ -6072,0 +6133,1 @@
++				bool avatarCorrected = false;
+@@ -6078,0 +6140,1 @@
++						avatarCorrected = true;
+@@ -6086,0 +6149,1 @@
++						avatarCorrected = true;
+@@ -6090,0 +6154,1 @@
++				MarkLoadoutResetIfAvatarChanged(iController.Player, iGamer.Avatar);
+@@ -6091,0 +6156,4 @@
++				if (avatarCorrected)
++				{
++					iController.Player.ResetLoadoutFromAvatarTemplate = true;
++				}
+@@ -6406,1 +6475,1 @@
+-				p.Gamer.Avatar = Profile.Instance.Avatars.Values[num];
++				AssignPlayerAvatar(p, Profile.Instance.Avatars.Values[num]);
+@@ -6419,1 +6488,1 @@
+-							p.Gamer.Avatar = Profile.Instance.Avatars.Values[mRobeRepresentations[1].OriginalIndex];
++							AssignPlayerAvatar(p, Profile.Instance.Avatars.Values[mRobeRepresentations[1].OriginalIndex]);
+@@ -6431,1 +6500,1 @@
+-				p.Gamer.Avatar = Profile.Instance.Avatars.Values[num];
++				AssignPlayerAvatar(p, Profile.Instance.Avatars.Values[num]);
+@@ -6439,1 +6508,1 @@
+-				p.Gamer.Avatar = Profile.Instance.Avatars.Values[num];
++				AssignPlayerAvatar(p, Profile.Instance.Avatars.Values[num]);
+@@ -6721,1 +6790,1 @@
+-								players[i].Gamer.Avatar = Profile.Instance.DefaultAvatar;
++								AssignPlayerAvatar(players[i], Profile.Instance.DefaultAvatar);
+@@ -6762,1 +6831,1 @@
+-						players[i].Gamer.Avatar = Profile.Instance.DefaultAvatar;
++						AssignPlayerAvatar(players[i], Profile.Instance.DefaultAvatar);

@@ -1,0 +1,13 @@
+@@ -289,1 +289,1 @@
+-			int num = 0;
++			uint num = 0;
+@@ -295,2 +295,2 @@
+-				int num2 = counterValue * objectives[i].Score;
+-				num += num2;
++				uint num2 = ChallengeScore.FromLong((long)counterValue * objectives[i].Score);
++				num = ChallengeScore.Add(num, num2);
+@@ -322,2 +322,2 @@
+-			int num3 = (int)((float)num * timedObjectiveRuleset.GetBonusMultiplier);
+-			num += num3;
++			uint num3 = ChallengeScore.FromDouble((double)num * timedObjectiveRuleset.GetBonusMultiplier);
++			num = ChallengeScore.Add(num, num3);

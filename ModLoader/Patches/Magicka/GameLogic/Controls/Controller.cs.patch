@@ -1,0 +1,56 @@
+@@ -70,0 +70,55 @@
++		protected ControllerDirection GetMenuDirection(Vector2 iMoveValue, Vector2 iDPadValue, ControllerDirection iPreviousDirection)
++		{
++			ControllerDirection controllerDirection = GetDominantMenuDirection(iDPadValue, iPreviousDirection);
++			if (controllerDirection != ControllerDirection.Center)
++			{
++				return controllerDirection;
++			}
++			return GetDominantMenuDirection(iMoveValue, iPreviousDirection);
++		}
++
++		private static ControllerDirection GetDominantMenuDirection(Vector2 iValue, ControllerDirection iPreviousDirection)
++		{
++			float num = Math.Abs(iValue.X);
++			float num2 = Math.Abs(iValue.Y);
++			bool flag = num >= 0.5f;
++			bool flag2 = num2 >= 0.5f;
++			if (!flag && !flag2)
++			{
++				return ControllerDirection.Center;
++			}
++			ControllerDirection controllerDirection = (iValue.X >= 0f) ? ControllerDirection.Right : ControllerDirection.Left;
++			ControllerDirection controllerDirection2 = (iValue.Y >= 0f) ? ControllerDirection.Up : ControllerDirection.Down;
++			if (flag && (!flag2 || num > num2))
++			{
++				return controllerDirection;
++			}
++			if (flag2 && (!flag || num2 > num))
++			{
++				return controllerDirection2;
++			}
++			if (iPreviousDirection == controllerDirection)
++			{
++				return controllerDirection;
++			}
++			if (iPreviousDirection == controllerDirection2)
++			{
++				return controllerDirection2;
++			}
++			return controllerDirection2;
++		}
++
++		protected static Vector2 ApplyRadialDeadZone(Vector2 iValue, float iDeadZone)
++		{
++			float num = iValue.Length();
++			if (num <= iDeadZone)
++			{
++				return Vector2.Zero;
++			}
++			if (num > 1f)
++			{
++				Vector2.Divide(ref iValue, num, out iValue);
++			}
++			return iValue;
++		}
++

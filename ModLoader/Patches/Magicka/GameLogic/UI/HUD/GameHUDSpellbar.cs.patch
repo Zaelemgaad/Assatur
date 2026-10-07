@@ -1,0 +1,32 @@
+@@ -5,0 +5,1 @@
++using PolygonHead;
+@@ -34,3 +35,26 @@
++			RefreshCurrentPlayer();
++		}
++
++		protected override void OnUpdate(DataChannel iDataChannel, float iDeltaTime)
++		{
++			base.OnUpdate(iDataChannel, iDeltaTime);
++			RefreshCurrentPlayer();
++		}
++
++		private void RefreshCurrentPlayer()
++		{
++			Player player = Player.FindFirstLocalPlayer();
++			if (mCurrentPlayer != player)
++			{
++				mCurrentPlayer = player;
+-			mAvatar = null;
++				mAvatar = null;
+-			mCurrentPlayer = Player.FindFirstLocalPlayer();
+-			if (mCurrentPlayer != null)
++				if (mCurrentPlayer != null)
++				{
++					mAvatar = mCurrentPlayer.Avatar;
++				}
++				if (mMagickBar != null)
++				{
++					mMagickBar.CurrentPlayer = mCurrentPlayer;
++				}
++			}
++			else if (mCurrentPlayer != null)

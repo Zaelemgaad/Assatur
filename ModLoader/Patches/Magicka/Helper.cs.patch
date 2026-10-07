@@ -1,0 +1,27 @@
+@@ -379,5 +379,3 @@
+-			HttpWebResponse httpWebResponse = (HttpWebResponse)httpWebRequest.GetResponse();
++			using HttpWebResponse httpWebResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+-			Stream responseStream = httpWebResponse.GetResponseStream();
++			using Stream responseStream = httpWebResponse.GetResponseStream();
+-			MemoryStream memoryStream = new MemoryStream();
++			using MemoryStream memoryStream = new MemoryStream();
+-			byte[] array = new byte[16384];
+-			while (true)
+@@ -385,2 +383,2 @@
+-				int num = responseStream.Read(array, 0, array.Length);
+-				if (num <= 0)
++				byte[] array = new byte[16384];
++				while (true)
+@@ -388,1 +386,6 @@
+-					break;
++					int num = responseStream.Read(array, 0, array.Length);
++					if (num <= 0)
++					{
++						break;
++					}
++					memoryStream.Write(array, 0, num);
+@@ -390,1 +393,0 @@
+-				memoryStream.Write(array, 0, num);
+@@ -392,2 +394,0 @@
+-			responseStream.Close();
+-			responseStream.Dispose();

@@ -1,0 +1,4 @@
+@@ -1069,0 +1069,1 @@
++			DebugArena.Update(this);
+@@ -1574,0 +1575,1 @@
++			DebugArena.Initialize(this);

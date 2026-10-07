@@ -1,0 +1,6 @@
+@@ -19,1 +19,1 @@
+-		public byte Multiplier;
++		public long Multiplier;
+@@ -49,1 +49,1 @@
+-			Multiplier = iReader.ReadByte();
++			Multiplier = iReader.ReadInt64();

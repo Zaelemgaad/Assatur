@@ -1,0 +1,28 @@
+@@ -38,0 +38,4 @@
++		private static readonly int DRAGONBORN_ROBE = "wizard_dragon".GetHashCodeCustom();
++
++		private const float DRAGONBORN_PUSH_MULTIPLIER = 2.5f;
++
+@@ -91,0 +95,10 @@
++		private static float GetPushMultiplier(ISpellCaster iOwner)
++		{
++			Character character = iOwner as Character;
++			if (character != null && character.Template != null && character.Template.ID == DRAGONBORN_ROBE)
++			{
++				return DRAGONBORN_PUSH_MULTIPLIER;
++			}
++			return 1f;
++		}
++
+@@ -97,2 +111,3 @@
++			float pushMultiplier = GetPushMultiplier(iOwner);
+-			mForce = 50f + 500f * iOwner.SpellPower;
++			mForce = (50f + 500f * iOwner.SpellPower) * pushMultiplier;
+-			mElevation = iOwner.SpellPower * 0.1f;
++			mElevation = iOwner.SpellPower * 0.1f * pushMultiplier;
+@@ -128,2 +143,3 @@
++			float pushMultiplier = GetPushMultiplier(iOwner);
+-			mForce = 50f + 500f * iOwner.SpellPower;
++			mForce = (50f + 500f * iOwner.SpellPower) * pushMultiplier;
+-			mElevation = iOwner.SpellPower * 0.1f;
++			mElevation = iOwner.SpellPower * 0.1f * pushMultiplier;

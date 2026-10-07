@@ -3,20 +3,133 @@
 @@ -39,1 +40,1 @@
 -	public class Avatar : Character, IAI
 +	public partial class Avatar : Character, IAI
-@@ -692,1 +693,3 @@
+@@ -345,0 +346,2 @@
++		private static readonly int WARLOCK = "wizard_warlock".GetHashCodeCustom();
++
+@@ -449,0 +452,2 @@
++		private bool IsWarlockRobe => Template != null && Template.ID == WARLOCK;
++
+@@ -453,1 +458,1 @@
+-				if (!mPolymorphed)
++				if (!mPolymorphed && !IsWarlockRobe)
+@@ -692,1 +697,3 @@
 -				Logger.LogOrAssert(result != null, "Unable to find a valid player avatar.");
 +
 +				// TODO Check if this can be removed because I think we can optimize away the IF.
 +				Game.Instance.Logger.Assert(result != null, Logger.Source.Avatar, "Unable to find a valid player avatar.");
-@@ -771,0 +774,2 @@
+@@ -771,0 +778,2 @@
 +
 +			_globals = Game.Instance.ModLoader.AvatarGlobalFactory.Make(this);
-@@ -2004,0 +2009,3 @@
+@@ -884,1 +893,1 @@
+-			player.IconRenderer.SetCapacity(5);
++			player.IconRenderer.SetCapacity(mSpellQueue.Capacity);
+@@ -1352,0 +1361,13 @@
++		public void SetControllerAimDirection(Vector2 iValue)
++		{
++			float sqLen = iValue.LengthSquared();
++			if (sqLen > 1E-06f)
++			{
++				float len = (float)Math.Sqrt(sqLen);
++				Vector3 dir = new Vector3(iValue.X / len, 0f, -iValue.Y / len);
++				mDesiredInputDirection = dir;
++				base.CharacterBody.DesiredDirection = dir;
++				TurnSpeed = 1000f;
++			}
++		}
++
+@@ -1600,1 +1622,1 @@
+-				if (SpellManager.Instance.TryAddToQueue(Player, this, mSpellQueue, 5, ref iSpell))
++				if (SpellManager.Instance.TryAddToQueue(Player, this, mSpellQueue, mSpellQueue.Capacity, ref iSpell))
+@@ -1619,0 +1641,59 @@
++		public bool CastTomeMagick()
++		{
++			if (mCurrentState is ChargeState || mPolymorphed || !mCanChant || !TutorialManager.Instance.IsCastTypeEnabled(CastType.Magick))
++			{
++				return false;
++			}
++			MagickType tomeMagick = Player.IconRenderer.TomeMagick;
++			if (tomeMagick == MagickType.None || !SpellManager.Instance.IsMagickAllowed(Player, mPlayState.GameType, tomeMagick))
++			{
++				return false;
++			}
++			Elements[] magickCombo = SpellManager.Instance.GetMagickCombo(tomeMagick);
++			if (magickCombo == null)
++			{
++				return false;
++			}
++			if (tomeMagick == MagickType.Amalgameddon)
++			{
++				magickCombo = new Elements[4]
++				{
++					Elements.Arcane,
++					Elements.Ice,
++					Elements.Lightning,
++					Elements.Fire
++				};
++			}
++			Player.IconRenderer.Clear();
++			Player.InputQueue.Clear();
++			mSpellQueue.Clear();
++			mChantedSpells = 0;
++			for (int i = 0; i < magickCombo.Length; i++)
++			{
++				Spell iSpell;
++				Spell.DefaultSpell(magickCombo[i], out iSpell);
++				if (NetworkManager.Instance.State != 0)
++				{
++					CharacterActionMessage iMessage = default(CharacterActionMessage);
++					iMessage.Action = ActionType.ConjureElement;
++					iMessage.Handle = base.Handle;
++					iMessage.Param0I = (int)iSpell.Element;
++					NetworkManager.Instance.Interface.SendMessage(ref iMessage);
++				}
++				if (SpellManager.Instance.TryAddToQueue(Player, this, mSpellQueue, mSpellQueue.Capacity, ref iSpell))
++				{
++					mChantedSpells++;
++				}
++				int iSoundIndex = Defines.SOUNDS_UI_ELEMENT[Spell.ElementIndex(iSpell.Element)];
++				AudioManager.Instance.PlayCue(Banks.UI, iSoundIndex);
++			}
++			mChantingMagick = SpellManager.Instance.IsMagick(Player, mPlayState.GameType, base.SpellQueue);
++			if (!mChantingMagick)
++			{
++				return false;
++			}
++			TutorialManager.Instance.SetTip(TutorialManager.Tips.MagicksSpell, TutorialManager.Position.Top);
++			Boost();
++			return true;
++		}
++
+@@ -1755,0 +1836,9 @@
++			if (IsWarlockRobe)
++			{
++				base.PlayState.TooFancyForFireballs[Player.ID] = false;
++				if (mGripType == Grip.GripType.Pickup && base.IsGripped)
++				{
++					mBreakFreeCounter += (int)mBreakFreeStrength;
++				}
++				return;
++			}
+@@ -1835,0 +1925,4 @@
++				if (IsWarlockRobe)
++				{
++					return;
++				}
+@@ -2004,0 +2098,3 @@
 +			if (!_globals.TrueForAll(g => g.PreDie(this)))
 +				return;
 +
-@@ -2005,0 +2013,1 @@
+@@ -2005,0 +2102,1 @@
 +
-@@ -2037,0 +2046,2 @@
+@@ -2037,0 +2135,2 @@
 +
 +			_globals.Do(g => g.PostDie(this));
+@@ -2089,1 +2189,1 @@
+-				if (SpellManager.Instance.TryAddToQueue(null, this, mSpellQueue, 5, ref oSpell))
++				if (SpellManager.Instance.TryAddToQueue(null, this, mSpellQueue, mSpellQueue.Capacity, ref oSpell))
+@@ -2182,1 +2282,4 @@
++				if (!IsWarlockRobe)
++				{
+-				mEquipment[iMsg.Param0I].Item.ExecuteSpecialAbility();
++					mEquipment[iMsg.Param0I].Item.ExecuteSpecialAbility();
++				}

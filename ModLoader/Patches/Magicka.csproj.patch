@@ -25,3 +25,7 @@
 +	<Reference Include="Microsoft.DirectX.DirectInput">
 +      <HintPath>C:\WINDOWS\assembly\GAC\Microsoft.DirectX.DirectInput\1.0.2902.0__31bf3856ad364e35\Microsoft.DirectX.DirectInput.dll</HintPath>
 +    </Reference>
+@@ -55,0 +68,3 @@
++  <Target Name="PatchLargeAddressAware" AfterTargets="Build">
++    <Exec Command="powershell -NoProfile -Command &quot;$b=[IO.File]::ReadAllBytes('$(TargetPath)');$pe=[BitConverter]::ToInt32($b,0x3C);$b[$pe+22]=$b[$pe+22] -bor 0x20;[IO.File]::WriteAllBytes('$(TargetPath)',$b)&quot;" />
++  </Target>

@@ -1,0 +1,17 @@
+@@ -49,6 +49,10 @@
+-			HttpWebRequest httpWebRequest = (HttpWebRequest)asynchResult.AsyncState;
+-			HttpWebResponse httpWebResponse = (HttpWebResponse)httpWebRequest.EndGetResponse(asynchResult);
+-			Stream responseStream = httpWebResponse.GetResponseStream();
+-			ParseStream(responseStream);
+-			responseStream.Close();
+-			httpWebResponse.Close();
++			try
++			{
++				HttpWebRequest httpWebRequest = (HttpWebRequest)asynchResult.AsyncState;
++				using HttpWebResponse httpWebResponse = (HttpWebResponse)httpWebRequest.EndGetResponse(asynchResult);
++				using Stream responseStream = httpWebResponse.GetResponseStream();
++				ParseStream(responseStream);
++			}
++			catch (WebException)
++			{
++			}

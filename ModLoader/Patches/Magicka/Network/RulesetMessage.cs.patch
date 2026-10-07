@@ -1,0 +1,6 @@
+@@ -51,1 +51,1 @@
+-				iWriter.Write(Byte02);
++				iWriter.Write(Integer01);
+@@ -112,1 +112,1 @@
+-				Byte02 = iReader.ReadByte();
++				Integer01 = iReader.ReadInt32();

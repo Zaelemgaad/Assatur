@@ -1,0 +1,26 @@
+@@ -639,4 +639,1 @@
+-				if (value != null)
+-				{
+-					mProjectileModel = value;
++				mProjectileModel = value;
+-				}
+@@ -862,1 +859,1 @@
+-			mSpellQueue = new StaticEquatableList<Spell>(5);
++			mSpellQueue = new StaticEquatableList<Spell>(SpellManager.SPELL_QUEUE_CAPACITY);
+@@ -2109,1 +2106,3 @@
++			int num2 = -1;
++			int num3 = mSpellQueue.Capacity - 1;
+-			if (mSpellQueue.Count < 5)
++			if (mSpellQueue.Count < mSpellQueue.Capacity)
+@@ -2116,1 +2115,1 @@
+-				int num2 = SpellManager.FindOpposites(mSpellQueue, 4, iSpell.Element);
++				num2 = SpellManager.FindOpposites(mSpellQueue, num3, iSpell.Element);
+@@ -2123,1 +2122,1 @@
+-					num2 = SpellManager.FindRevertables(mSpellQueue, 4, iSpell.Element);
++					num2 = SpellManager.FindRevertables(mSpellQueue, num3, iSpell.Element);
+@@ -2131,1 +2130,1 @@
+-						num2 = SpellManager.FindCombines(mSpellQueue, 4, iSpell.Element);
++						num2 = SpellManager.FindCombines(mSpellQueue, num3, iSpell.Element);
+@@ -2141,1 +2140,1 @@
+-					num2 = SpellManager.FindDifferentElement(mSpellQueue, 4, Elements.Lightning);
++					num2 = SpellManager.FindDifferentElement(mSpellQueue, num3, Elements.Lightning);

@@ -1,0 +1,77 @@
+@@ -2,0 +2,1 @@
++using Magicka.GameLogic;
+@@ -12,1 +13,3 @@
++		private const int MAX_NUMBER_OF_ELEMENTS = SpellManager.SPELL_QUEUE_CAPACITY;
++
+-		private const int MAX_NUMBER_OF_ELEMENTS = 5;
++		private const int MAX_MAGICK_ELEMENTS = 5;
+@@ -14,1 +17,1 @@
+-		private static readonly Vector2 WIDGET_SIZE = new Vector2(504f, 48f);
++		private static readonly Vector2 WIDGET_SIZE = new Vector2(504f, 96f);
+@@ -18,0 +21,2 @@
++		private GridLayout mQueueLayout;
++
+@@ -24,0 +29,2 @@
++		private Player mCurrentPlayer;
++
+@@ -26,0 +33,16 @@
++		public Player CurrentPlayer
++		{
++			get
++			{
++				return mCurrentPlayer;
++			}
++			set
++			{
++				if (mCurrentPlayer != value)
++				{
++					mCurrentPlayer = value;
++					ResetElementBar();
++				}
++			}
++		}
++
+@@ -83,1 +106,1 @@
+-			mMagickLayout.ColumnCount = 5;
++			mMagickLayout.ColumnCount = MAX_MAGICK_ELEMENTS;
+@@ -85,1 +108,1 @@
+-			for (int i = 0; i < 5; i++)
++			for (int i = 0; i < MAX_MAGICK_ELEMENTS; i++)
+@@ -89,9 +112,10 @@
+-			mLayout = new HorizontalLayout(this);
++			mQueueLayout = new GridLayout(this);
+-			mLayout.RelativeSize = Vector2.One;
++			mQueueLayout.RelativeSize = Vector2.One;
+-			mLayout.RelativeParentalAnchor = Widget.MiddleCentreAnchor;
++			mQueueLayout.RelativeParentalAnchor = Widget.MiddleCentreAnchor;
+-			mLayout.RelativePivotAnchor = Widget.MiddleCentreAnchor;
++			mQueueLayout.RelativePivotAnchor = Widget.MiddleCentreAnchor;
+-			mLayout.Padding = new Spacing(40f, 0f);
++			mQueueLayout.Padding = new Spacing(6f, 2f);
+-			mLayout.Margins = new Spacing(64f, 0f);
++			mQueueLayout.Margins = new Spacing(24f, 24f, 0f, 0f);
+-			mLayout.HorizontalCellAlignment = LayoutWidget.HorizontalAlignmentMode.Center;
++			mQueueLayout.HorizontalCellAlignment = LayoutWidget.HorizontalAlignmentMode.Center;
+-			mLayout.VerticalCellAlignment = LayoutWidget.VerticalAlignmentMode.Middle;
++			mQueueLayout.VerticalCellAlignment = LayoutWidget.VerticalAlignmentMode.Middle;
+-			mLayout.ColumnCount = 5;
++			mQueueLayout.ColumnCount = 10;
++			mQueueLayout.RowCount = 2;
+@@ -99,1 +123,1 @@
+-			for (int j = 0; j < 5; j++)
++			for (int j = 0; j < MAX_NUMBER_OF_ELEMENTS; j++)
+@@ -101,1 +125,1 @@
+-				mElements.Add(new ElementWidget(mLayout, iPlayerOwned: true, iSpellBar: false));
++				mElements.Add(new ElementWidget(mQueueLayout, iPlayerOwned: true, iSpellBar: false));
+@@ -116,1 +140,2 @@
+-			if (Player.Local.Avatar == null || Player.Local.Avatar.SpellQueue == null)
++			Player player = mCurrentPlayer ?? Player.FindFirstLocalPlayer();
++			if (player == null || player.Avatar == null || player.Avatar.SpellQueue == null)
+@@ -120,0 +145,1 @@
++			StaticList<Spell> spellQueue = player.Avatar.SpellQueue;
+@@ -122,1 +148,1 @@
+-				if (i < Player.Local.Avatar.SpellQueue.Count)
++				if (i < spellQueue.Count)
+@@ -124,1 +150,1 @@
+-					Elements element = Player.Local.Avatar.SpellQueue[i].Element;
++					Elements element = spellQueue[i].Element;

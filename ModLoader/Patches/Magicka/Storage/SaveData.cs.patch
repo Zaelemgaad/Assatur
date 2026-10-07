@@ -1,0 +1,6 @@
+@@ -64,1 +64,1 @@
+-		public byte MaxAllowedLevel => mMaxAllowedLevel;
++		public byte MaxAllowedLevel => byte.MaxValue;
+@@ -110,1 +110,1 @@
+-				return mUnlockedMagicks;
++				return ulong.MaxValue;

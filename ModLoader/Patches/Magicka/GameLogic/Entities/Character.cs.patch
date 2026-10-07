@@ -3,13 +3,69 @@
 @@ -43,1 +44,1 @@
 -	public abstract class Character : Entity, ISpellCaster, IStatusEffected, IDamageable
 +	public abstract partial class Character : Entity, ISpellCaster, IStatusEffected, IDamageable
-@@ -2827,0 +2828,2 @@
+@@ -1212,0 +1213,2 @@
++		private static readonly int WARLOCK = "wizard_warlock".GetHashCodeCustom();
 +
-+			
-@@ -7049,1 +7052,1 @@
+@@ -2137,1 +2140,11 @@
+-		public Matrix CastSource => mStaffOrb;
++		public Matrix CastSource
++		{
++			get
++			{
++				if (mTemplate == null || mTemplate.ID != WARLOCK)
++				{
++					return mStaffOrb;
++				}
++				return GetDebugWarlockCastSource();
++			}
++		}
+@@ -2141,0 +2154,26 @@
++		private Matrix GetDebugWarlockCastSource()
++		{
++			Matrix result = mStaffOrb;
++			Vector3 forward = Direction;
++			forward.Y = 0f;
++			if (forward.LengthSquared() <= 1E-06f)
++			{
++				return result;
++			}
++			forward.Normalize();
++			Vector3 up = Vector3.Up;
++			Vector3 right;
++			Vector3.Cross(ref forward, ref up, out right);
++			if (right.LengthSquared() <= 1E-06f)
++			{
++				return result;
++			}
++			right.Normalize();
++			Vector3.Cross(ref right, ref forward, out up);
++			up.Normalize();
++			result.Forward = forward;
++			result.Right = right;
++			result.Up = up;
++			return result;
++		}
++
+@@ -2821,1 +2860,1 @@
+-			mSpellQueue = new StaticEquatableList<Spell>(5);
++			mSpellQueue = new StaticEquatableList<Spell>(SpellManager.SPELL_QUEUE_CAPACITY);
+@@ -2827,0 +2866,2 @@
++
++			_globals = Game.Instance.ModLoader.CharacterGlobalFactory.Make(this);
+@@ -6084,4 +6125,0 @@
+-				else if (flag2)
+-				{
+-					damageResult = damageResult;
+-				}
+@@ -6625,1 +6662,1 @@
+-				SpellManager.Instance.TryAddToQueue(null, this, mSpellQueue, 5, ref oSpell);
++				SpellManager.Instance.TryAddToQueue(null, this, mSpellQueue, mSpellQueue.Capacity, ref oSpell);
+@@ -6947,1 +6984,0 @@
+-					Vector3 vector = default(Vector3);
+@@ -7049,1 +7085,1 @@
 -		public void GetSpellRangeModifier(ref float iRange)
 +		public void GetSpellRangeModifier(ref float range)
-@@ -7051,2 +7054,7 @@
+@@ -7051,2 +7087,7 @@
 +			for (int i = 0; i < _globals.Count; i++)
 +				if (!_globals[i].PreGetSpellRangeModifier(ref range))
 +					return;
@@ -19,12 +75,12 @@
 -			float num2 = 0f;
 +			float modifier = 0f;
 +
-@@ -7057,2 +7065,2 @@
+@@ -7057,2 +7098,2 @@
 -					num *= mBuff.BuffModifySpellRange.RangeMultiplier;
 +					multiplier *= mBuff.BuffModifySpellRange.RangeMultiplier;
 -					num2 += mBuff.BuffModifySpellRange.RangeModifier;
 +					modifier += mBuff.BuffModifySpellRange.RangeModifier;
-@@ -7061,2 +7069,5 @@
+@@ -7061,2 +7102,5 @@
 -			iRange *= num;
 -			iRange += num2;
 +
@@ -32,59 +88,59 @@
 +			range += modifier;
 +
 +			for (int i = 0; i < _globals.Count; i++) _globals[i].GetSpellRangeModifier(ref range);
-@@ -7065,1 +7076,1 @@
+@@ -7065,1 +7109,1 @@
 -		public float GetAgroMultiplier()
 +		public float GetAggroMultiplier()
-@@ -7067,1 +7078,5 @@
+@@ -7067,1 +7111,5 @@
 -			float num = 1f;
 +			var multiplier = 1f;
 +
 +			for (int i = 0; i < _globals.Count; i++)
 +				if (!_globals[i].PreGetAggroMultiplier(ref multiplier)) return multiplier;
 +
-@@ -7072,1 +7087,1 @@
+@@ -7072,1 +7120,1 @@
 -					num *= mBuff.BuffReduceAgro.Amount;
 +					multiplier *= mBuff.BuffReduceAggro.Amount;
-@@ -7075,1 +7090,4 @@
+@@ -7075,1 +7123,4 @@
 +
 +			for (int i = 0; i < _globals.Count; i++) _globals[i].GetAggroMultiplier(ref multiplier);
 +
 -			return num;
 +			return multiplier;
-@@ -7173,0 +7191,3 @@
+@@ -7173,0 +7224,3 @@
 +			for (int i = 0; i < _globals.Count; i++)
 +				if (_globals[i].PreDamage(ref iDamage, ref iElement)) return;
 +
-@@ -7177,0 +7198,1 @@
+@@ -7177,0 +7231,1 @@
 +
-@@ -7178,0 +7200,1 @@
+@@ -7178,0 +7233,1 @@
 +
-@@ -7182,0 +7205,1 @@
+@@ -7182,0 +7238,1 @@
 +
-@@ -7186,2 +7210,4 @@
+@@ -7186,2 +7243,4 @@
 +
 -			float num = mHitPoints;
 +			float currentHP = mHitPoints;
 -			float num2 = mHitPoints - iDamage;
 +			float remainingHP = mHitPoints - iDamage;
 +
-@@ -7192,0 +7218,1 @@
+@@ -7192,0 +7251,1 @@
 +
-@@ -7193,1 +7220,1 @@
+@@ -7193,1 +7253,1 @@
 -			if (num2 <= 0f && num > 0f)
 +			if (remainingHP <= 0f && currentHP > 0f)
-@@ -7210,0 +7237,1 @@
+@@ -7210,0 +7270,1 @@
 +
-@@ -7214,0 +7242,1 @@
+@@ -7214,0 +7275,1 @@
 +
-@@ -7218,0 +7247,1 @@
+@@ -7218,0 +7280,1 @@
 +
-@@ -7227,1 +7257,1 @@
+@@ -7227,1 +7290,1 @@
 -				if (num2 < mMaxHitPoints)
 +				if (remainingHP < mMaxHitPoints)
-@@ -7238,1 +7268,1 @@
+@@ -7238,1 +7301,1 @@
 -				if (num2 > mMaxHitPoints)
 +				if (remainingHP > mMaxHitPoints)
-@@ -7247,0 +7277,2 @@
+@@ -7247,0 +7310,2 @@
 +
 +			for (int i = 0; i < _globals.Count; i++) _globals[i].Damage(ref iDamage, ref iElement);

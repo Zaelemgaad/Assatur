@@ -1,0 +1,200 @@
+@@ -25,0 +25,4 @@
++		private static readonly ControllerFunction[] VISIBLE_BINDINGS = CreateVisibleBindings();
++
++		private static int BindingCount => VISIBLE_BINDINGS.Length;
++
+@@ -86,1 +90,1 @@
+-					for (int i = 0; i < 24; i++)
++					for (int i = 0; i < BindingCount; i++)
+@@ -88,1 +92,2 @@
++						ControllerFunction function = GetBindingFunction(i);
+-						DirectInputController.Binding binding = directInputController.Bindings[i];
++						DirectInputController.Binding binding = directInputController.Bindings[(int)function];
+@@ -132,1 +137,1 @@
+-					for (int j = 0; j < 24; j++)
++					for (int j = 0; j < BindingCount; j++)
+@@ -134,70 +139,3 @@
+-						XInputController.Binding binding2 = xInputController.Bindings[j];
+-						if (binding2.Type == XInputController.Binding.BindingType.Button)
+-						{
+-							mMenuOptions[j].SetText(XInputController.GetButtonName((Buttons)binding2.BindingIndex));
+-						}
+-						else if (binding2.Type == XInputController.Binding.BindingType.Trigger)
+-						{
+-							if (binding2.BindingIndex == 0)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.LeftTrigger));
+-							}
+-							else if (binding2.BindingIndex == 1)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.RightTrigger));
+-							}
+-							else
+-							{
+-								mMenuOptions[j].SetText("-");
+-							}
+-						}
+-						else if (binding2.Type == XInputController.Binding.BindingType.PositiveStick)
+-						{
+-							if (binding2.BindingIndex == 0)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.LeftThumbstickRight));
+-							}
+-							else if (binding2.BindingIndex == 1)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.LeftThumbstickUp));
+-							}
+-							else if (binding2.BindingIndex == 2)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.RightThumbstickRight));
+-							}
+-							else if (binding2.BindingIndex == 3)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.RightThumbstickUp));
+-							}
+-							else
+-							{
+-								mMenuOptions[j].SetText("-");
+-							}
+-						}
+-						else if (binding2.Type == XInputController.Binding.BindingType.NegativeStick)
+-						{
+-							if (binding2.BindingIndex == 0)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.LeftThumbstickLeft));
+-							}
+-							else if (binding2.BindingIndex == 1)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.LeftThumbstickDown));
+-							}
+-							else if (binding2.BindingIndex == 2)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.RightThumbstickLeft));
+-							}
+-							else if (binding2.BindingIndex == 3)
+-							{
+-								mMenuOptions[j].SetText(XInputController.GetButtonName(Buttons.RightThumbstickDown));
+-							}
+-							else
+-							{
+-								mMenuOptions[j].SetText("-");
+-							}
+-						}
+-						else
+-						{
+-							mMenuOptions[j].SetText("-");
+-						}
++						ControllerFunction function = GetBindingFunction(j);
++						XInputController.Binding binding2 = xInputController.Bindings[(int)function];
++						mMenuOptions[j].SetText(XInputController.GetBindingName(binding2));
+@@ -224,1 +162,1 @@
+-			for (int i = 0; i < 24; i++)
++			for (int i = 0; i < BindingCount; i++)
+@@ -226,2 +164,11 @@
++				ControllerFunction controllerFunction = GetBindingFunction(i);
++				string text = GetControllerFunctionText(controllerFunction);
++				if (text != null)
++				{
++					AddMenuTextItem(text);
++				}
++				else
++				{
+-				string text = "#ctrl_" + (ControllerFunction)i;
++					text = "#ctrl_" + controllerFunction;
+-				AddMenuTextItem(text.ToLowerInvariant().GetHashCodeCustom());
++					AddMenuTextItem(text.ToLowerInvariant().GetHashCodeCustom());
++				}
+@@ -231,1 +178,66 @@
+-			mScrollBar = new MenuScrollBar(new Vector2(928f, 512f), mFont.LineHeight * 13, 12);
++			mScrollBar = new MenuScrollBar(new Vector2(928f, 512f), mFont.LineHeight * 13, System.Math.Max(0, BindingCount - VISIBLE_ITEMS));
++		}
++
++		private static ControllerFunction[] CreateVisibleBindings()
++		{
++			List<ControllerFunction> list = new List<ControllerFunction>();
++			for (int i = 0; i < (int)ControllerFunction.NR_OF_FUNCTIONS; i++)
++			{
++				ControllerFunction controllerFunction = (ControllerFunction)i;
++				if (IsVisibleBinding(controllerFunction))
++				{
++					list.Add(controllerFunction);
++				}
++			}
++			return list.ToArray();
++		}
++
++		private static bool IsVisibleBinding(ControllerFunction iFunction)
++		{
++			return iFunction != ControllerFunction.Spell_Right && iFunction != ControllerFunction.Spell_Up && iFunction != ControllerFunction.Spell_Left && iFunction != ControllerFunction.Spell_Down && iFunction != ControllerFunction.Special && iFunction != ControllerFunction.Spell_Wheel;
++		}
++
++		private static ControllerFunction GetBindingFunction(int iIndex)
++		{
++			return VISIBLE_BINDINGS[iIndex];
++		}
++
++		private static int GetBindingMenuPosition(ControllerFunction iFunction)
++		{
++			for (int i = 0; i < VISIBLE_BINDINGS.Length; i++)
++			{
++				if (VISIBLE_BINDINGS[i] == iFunction)
++				{
++					return i + 1;
++				}
++			}
++			return -1;
++		}
++
++		private static string GetControllerFunctionText(ControllerFunction iFunction)
++		{
++			switch (iFunction)
++			{
++			case ControllerFunction.Element_Fire:
++				return "Fire";
++			case ControllerFunction.Element_Earth:
++				return "Earth";
++			case ControllerFunction.Element_Lightning:
++				return "Lightning";
++			case ControllerFunction.Element_Arcane:
++				return "Arcane";
++			case ControllerFunction.Element_Cold:
++				return "Cold";
++			case ControllerFunction.Element_Shield:
++				return "Shield";
++			case ControllerFunction.Element_Water:
++				return "Water";
++			case ControllerFunction.Element_Life:
++				return "Life";
++			case ControllerFunction.Cast_Push:
++				return "Force Push";
++			case ControllerFunction.Cast_Tome_Magick:
++				return "Cast Selected Magick";
++			default:
++				return null;
++			}
+@@ -354,1 +366,1 @@
+-				mFunction = (ControllerFunction)(mSelectedPosition - 1);
++				mFunction = GetBindingFunction(mSelectedPosition - 1);
+@@ -449,1 +461,1 @@
+-						for (int j = mScrollBar.Value + 1; j < mScrollBar.Value + 12 + 11; j++)
++						for (int j = mScrollBar.Value + 1; j < System.Math.Min(mMenuItems.Count, mScrollBar.Value + VISIBLE_ITEMS + 1); j++)
+@@ -475,1 +487,1 @@
+-								mFunction = (ControllerFunction)(j - 1);
++								mFunction = GetBindingFunction(j - 1);
+@@ -572,1 +584,1 @@
+-				for (int j = mScrollBar.Value + 1; j < mScrollBar.Value + 12 + 1; j++)
++				for (int j = mScrollBar.Value + 1; j < System.Math.Min(mMenuItems.Count, mScrollBar.Value + VISIBLE_ITEMS + 1); j++)
+@@ -665,1 +677,1 @@
+-				while (mSelectedPosition > mScrollBar.Value + 12)
++				while (mSelectedPosition > mScrollBar.Value + VISIBLE_ITEMS)
+@@ -672,0 +684,1 @@
++			int bindingMenuPosition = GetBindingMenuPosition(mFunction);
+@@ -674,1 +687,1 @@
+-			for (int i = mScrollBar.Value + 1; i < mScrollBar.Value + 12 + 1; i++)
++			for (int i = mScrollBar.Value + 1; i < System.Math.Min(mMenuItems.Count, mScrollBar.Value + VISIBLE_ITEMS + 1); i++)
+@@ -679,1 +692,1 @@
+-					menuItem.Selected = i == (int)(mFunction + 1);
++					menuItem.Selected = i == bindingMenuPosition;
+@@ -688,1 +701,1 @@
+-					menuItem.Selected = i == (int)(mFunction + 1);
++					menuItem.Selected = i == bindingMenuPosition;

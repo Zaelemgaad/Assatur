@@ -1,0 +1,2 @@
+@@ -199,0 +199,1 @@
++			PerformanceEnchantmentStable.InitializeCache(16);

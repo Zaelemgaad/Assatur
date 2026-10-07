@@ -1,0 +1,6 @@
+@@ -10,1 +10,1 @@
+-		public int TotalScore;
++		public uint TotalScore;
+@@ -39,1 +39,1 @@
+-			TotalScore = iReader.ReadInt32();
++			TotalScore = iReader.ReadUInt32();

@@ -1,0 +1,18 @@
+@@ -227,13 +227,4 @@
+-				if (item.Purchased)
+-				{
+-					GlobalSettings.Instance.LastUsedHUD = item.ShortCode;
++				GlobalSettings.Instance.LastUsedHUD = item.ShortCode;
+-					mSelectBtn.Active = false;
++				mSelectBtn.Active = false;
+-					mSelectBtnText.LocalisationKey = LOC_SELECTED;
++				mSelectBtnText.LocalisationKey = LOC_SELECTED;
+-					RefreshCarousel();
++				RefreshCarousel();
+-				}
+-				else
+-				{
+-					item.DoInfoAction();
+-					StoreInformationPopup infoPopup = StoreInventoryItem.InfoPopup;
+-					infoPopup.OnClosed = (WidgetPopup.PopupVisibilityDelegate)Delegate.Combine(infoPopup.OnClosed, new WidgetPopup.PopupVisibilityDelegate(OnInfoPopupClosed));
+-				}

@@ -1,0 +1,89 @@
+@@ -1,0 +1,1 @@
++using System;
+@@ -53,1 +54,1 @@
+-		private int mTotalScore;
++		private uint mTotalScore;
+@@ -77,1 +78,1 @@
+-		public int SurvivalTotalScore => mTotalScore;
++		public uint SurvivalTotalScore => mTotalScore;
+@@ -81,0 +82,18 @@
++		public bool HasOnlineLeaderboard(int iChallengeIndex)
++		{
++			return iChallengeIndex >= 0 && iChallengeIndex < mSteamLeaderboards.Count && mSteamLeaderboards[iChallengeIndex] != 0uL;
++		}
++
++		private static bool IsOnlineLeaderboardEnabled(LevelNode iChallenge)
++		{
++			if (iChallenge == null || string.IsNullOrEmpty(iChallenge.FileName))
++			{
++				return false;
++			}
++			if (iChallenge.FileName.Equals("ch_debug_arena", StringComparison.OrdinalIgnoreCase) || iChallenge.FileName.Equals("aTest_CreatureTypes", StringComparison.OrdinalIgnoreCase))
++			{
++				return false;
++			}
++			return true;
++		}
++
+@@ -99,1 +118,9 @@
+-				SteamUserStats.FindLeaderboard(challenges[k].FileName, OnlineFindResult);
++				mSteamLeaderboards.Add(0uL);
++				if (IsOnlineLeaderboardEnabled(challenges[k]))
++				{
++					int challengeIndex = k;
++					SteamUserStats.FindLeaderboard(challenges[k].FileName, delegate(LeaderboardFindResult iResult)
++					{
++						OnlineFindResult(challengeIndex, iResult);
++					});
++				}
+@@ -120,1 +147,1 @@
+-			if (NetworkManager.Instance.State != NetworkState.Client)
++			if (NetworkManager.Instance.State != NetworkState.Client && HasOnlineLeaderboard(iChallengeIndex))
+@@ -122,4 +149,2 @@
+-				if (mSteamLeaderboards.Count > iChallengeIndex)
+-				{
+-					SteamUserStats.UploadLeaderboardScore(mSteamLeaderboards[iChallengeIndex], LeaderboardUploadScoreMethod.KeepBest, iData.Score, new int[1] { iData.Data1 }, OnlineScoreUploaded);
+-				}
++				int score = ChallengeScore.ToSteamScore(iData.Score);
++				SteamUserStats.UploadLeaderboardScore(mSteamLeaderboards[iChallengeIndex], LeaderboardUploadScoreMethod.KeepBest, score, new int[1] { iData.Data1 }, OnlineScoreUploaded);
+@@ -131,1 +156,1 @@
+-					iMessage.Score = iData.Score;
++					iMessage.Score = score;
+@@ -138,1 +163,1 @@
+-		private void OnlineFindResult(LeaderboardFindResult iResult)
++		private void OnlineFindResult(int iChallengeIndex, LeaderboardFindResult iResult)
+@@ -140,8 +165,5 @@
+-			if (iResult.mLeaderboardFound)
+-			{
+-				mSteamLeaderboards.Add(iResult.mSteamLeaderboard);
+-			}
+-			else
+-			{
+-				mSteamLeaderboards.Add(0uL);
+-			}
++			if (iChallengeIndex < 0 || iChallengeIndex >= mSteamLeaderboards.Count)
++			{
++				return;
++			}
++			mSteamLeaderboards[iChallengeIndex] = iResult.mLeaderboardFound ? iResult.mSteamLeaderboard : 0uL;
+@@ -164,1 +186,1 @@
+-		private void InternalDamageEvent(PlayState iPlayState, IDamageable iAttacker, IDamageable iTarget, double iTimeStamp, Damage iDamage, DamageResult iResult, int iMultiplier)
++		private void InternalDamageEvent(PlayState iPlayState, IDamageable iAttacker, IDamageable iTarget, double iTimeStamp, Damage iDamage, DamageResult iResult, long iMultiplier)
+@@ -223,1 +245,1 @@
+-								survivalRuleset.AddScore(nonPlayerCharacter2.DisplayName, num * iMultiplier);
++								survivalRuleset.AddScore(nonPlayerCharacter2.DisplayName, ChallengeScore.MultiplySigned(num, iMultiplier));
+@@ -225,1 +247,1 @@
+-							mTotalScore += nonPlayerCharacter2.ScoreValue * iMultiplier;
++							mTotalScore = ChallengeScore.Add(mTotalScore, ChallengeScore.MultiplySigned(nonPlayerCharacter2.ScoreValue, iMultiplier));
+@@ -302,1 +324,1 @@
+-				int scoreMultiplier = survivalRuleset.ScoreMultiplier;
++				long scoreMultiplier = survivalRuleset.ScoreMultiplier;
+@@ -307,1 +329,1 @@
+-				survivalRuleset.AddScore(nonPlayerCharacter2.DisplayName, num * scoreMultiplier);
++				survivalRuleset.AddScore(nonPlayerCharacter2.DisplayName, ChallengeScore.MultiplySigned(num, scoreMultiplier));
+@@ -321,1 +343,1 @@
+-			int num = 1;
++			long num = 1L;
+@@ -342,1 +364,1 @@
+-				iMessage.Multiplier = (byte)num;
++				iMessage.Multiplier = num;

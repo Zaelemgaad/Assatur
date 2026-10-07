@@ -1,0 +1,17 @@
+@@ -5,0 +5,1 @@
++using System.Globalization;
+@@ -45,0 +46,2 @@
++			internal int SortOrder;
++
+@@ -90,0 +93,1 @@
++				SortOrder = int.MaxValue;
+@@ -149,0 +153,7 @@
++						else if (xmlNode3.Name.Equals("sortOrder", StringComparison.OrdinalIgnoreCase) || xmlNode3.Name.Equals("robeOrder", StringComparison.OrdinalIgnoreCase) || xmlNode3.Name.Equals("menuOrder", StringComparison.OrdinalIgnoreCase))
++						{
++							if (int.TryParse(xmlNode3.InnerText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int sortOrder))
++							{
++								SortOrder = sortOrder;
++							}
++						}
+@@ -167,0 +178,1 @@
++				result.SortOrder = 0;

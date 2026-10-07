@@ -1,0 +1,449 @@
+@@ -70,0 +70,4 @@
++		public const int LegacyBindingCount = 24;
++
++		public static int BindingCount => (int)ControllerFunction.NR_OF_FUNCTIONS;
++
+@@ -82,7 +86,1 @@
+-		private Vector2 mPreviousPosition;
+-
+-		private ControllerDirection mCurrentDirection;
+-
+-		private ControllerDirection mStoredDirection;
+-
+-		private ControllerDirection mVisualDirection;
++		private bool mQueuedForceCastHeld;
+@@ -94,4 +92,0 @@
+-		private bool mInputLocked;
+-
+-		private bool mHelpActive;
+-
+@@ -150,1 +144,1 @@
+-				mBindings = new Binding[24];
++				mBindings = EnsureBindings(null);
+@@ -153,0 +147,5 @@
++			else
++			{
++				mBindings = EnsureBindings(mBindings);
++				GlobalSettings.Instance.DInputBindings[iGamepadInstanceGuid] = mBindings;
++			}
+@@ -156,1 +155,0 @@
+-			mHelpActive = false;
+@@ -161,0 +159,16 @@
++		public static Binding[] EnsureBindings(Binding[] iBindings)
++		{
++			int oldLength = (iBindings == null) ? 0 : iBindings.Length;
++			if (oldLength == BindingCount)
++			{
++				return iBindings;
++			}
++			Binding[] array = new Binding[BindingCount];
++			int copyLength = Math.Min(oldLength, BindingCount);
++			for (int i = 0; i < copyLength; i++)
++			{
++				array[i] = iBindings[i];
++			}
++			return array;
++		}
++
+@@ -166,0 +180,1 @@
++				mQueuedForceCastHeld = false;
+@@ -236,17 +251,6 @@
+-			ControllerDirection controllerDirection = ControllerDirection.Center;
+-			if (GetBoundValueB(ControllerFunction.Move_Right, oState))
+-			{
+-				controllerDirection |= ControllerDirection.Right;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Up, oState))
+-			{
+-				controllerDirection |= ControllerDirection.Up;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Left, oState))
+-			{
+-				controllerDirection |= ControllerDirection.Left;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Down, oState))
+-			{
+-				controllerDirection |= ControllerDirection.Down;
+-			}
++			Vector2 menuMoveValue = default(Vector2);
++			menuMoveValue.X += GetBoundValueF(ControllerFunction.Move_Right, oState);
++			menuMoveValue.X -= GetBoundValueF(ControllerFunction.Move_Left, oState);
++			menuMoveValue.Y += GetBoundValueF(ControllerFunction.Move_Up, oState);
++			menuMoveValue.Y -= GetBoundValueF(ControllerFunction.Move_Down, oState);
++			ControllerDirection controllerDirection = GetMenuDirection(menuMoveValue, GetDPadMenuValue(oState), mOldNavDirection);
+@@ -368,1 +372,1 @@
+-					else if (GetBoundValuePressed(ControllerFunction.Attack, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Boost, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Interact, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Special, oState, mOldState))
++					else if (GetBoundValuePressed(ControllerFunction.Attack, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Boost, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Interact, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Cast_Self, oState, mOldState))
+@@ -469,1 +473,2 @@
+-						if (GetBoundValuePressed(ControllerFunction.Boost, oState, mOldState))
++						bool castTomeMagickPressed = GetBoundValuePressed(ControllerFunction.Cast_Tome_Magick, oState, mOldState);
++						if (GetBoundValuePressed(ControllerFunction.Boost, oState, mOldState) && !castTomeMagickPressed)
+@@ -477,1 +482,1 @@
+-						if (GetBoundValuePressed(ControllerFunction.Special, oState, mOldState))
++						if (GetBoundValuePressed(ControllerFunction.Cast_Self, oState, mOldState) | GetBoundValuePressed(ControllerFunction.Special, oState, mOldState))
+@@ -481,1 +486,1 @@
+-						else if (GetBoundValueReleased(ControllerFunction.Special, oState, mOldState))
++						else if (GetBoundValueReleased(ControllerFunction.Cast_Self, oState, mOldState) | GetBoundValueReleased(ControllerFunction.Special, oState, mOldState))
+@@ -489,8 +494,0 @@
+-						if (GetBoundValueB(ControllerFunction.Spell_Wheel, oState))
+-						{
+-							mHelpActive = true;
+-						}
+-						else
+-						{
+-							mHelpActive = false;
+-						}
+@@ -498,13 +495,1 @@
+-						Vector2 iValue = default(Vector2);
+-						iValue.X += GetBoundValueF(ControllerFunction.Spell_Right, oState);
+-						iValue.X -= GetBoundValueF(ControllerFunction.Spell_Left, oState);
+-						iValue.Y += GetBoundValueF(ControllerFunction.Spell_Up, oState);
+-						iValue.Y -= GetBoundValueF(ControllerFunction.Spell_Down, oState);
+-						if (mAvatar.Polymorphed)
+-						{
+-							RightStickUpdate(default(Vector2));
+-						}
+-						else
+-						{
+-							RightStickUpdate(iValue);
+-						}
++						Vector2 iValue = ApplyRadialDeadZone(new Vector2(oState.Axes[3], 0f - oState.Axes[4]), 0.2f);
+@@ -526,0 +511,4 @@
++						if (iValue.LengthSquared() > 0f)
++						{
++							mAvatar.SetControllerAimDirection(iValue);
++						}
+@@ -534,1 +523,12 @@
+-						if (GetBoundValueB(ControllerFunction.Cast_Force, oState))
++						bool forceCastInputHeld = GetBoundValueB(ControllerFunction.Cast_Force, oState);
++						bool hasQueuedSpell = mAvatar.SpellQueue.Count > 0;
++						if (!forceCastInputHeld)
++						{
++							mQueuedForceCastHeld = false;
++						}
++						else if (hasQueuedSpell)
++						{
++							mQueuedForceCastHeld = true;
++						}
++						bool forceHeld = (forceCastInputHeld && mQueuedForceCastHeld) || (!mQueuedForceCastHeld && !hasQueuedSpell && GetBoundValueB(ControllerFunction.Cast_Push, oState));
++						if (forceHeld)
+@@ -542,1 +542,8 @@
++						if (castTomeMagickPressed)
++						{
++							if (!mAvatar.CastTomeMagick())
++							{
++								mAvatar.Boost();
++							}
++						}
+-						if (GetBoundValuePressed(ControllerFunction.Magick_Next, oState, mOldState))
++						else if (GetBoundValuePressed(ControllerFunction.Magick_Next, oState, mOldState))
+@@ -567,0 +574,36 @@
++						if (GetBoundValuePressed(ControllerFunction.Element_Fire, oState, mOldState))
++						{
++							mAvatar.ConjureFire();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Earth, oState, mOldState))
++						{
++							mAvatar.ConjureEarth();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Lightning, oState, mOldState))
++						{
++							mAvatar.ConjureLightning();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Arcane, oState, mOldState))
++						{
++							mAvatar.ConjureArcane();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Cold, oState, mOldState))
++						{
++							mAvatar.ConjureCold();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Shield, oState, mOldState))
++						{
++							mAvatar.ConjureShield();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Water, oState, mOldState))
++						{
++							mAvatar.ConjureWater();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Life, oState, mOldState))
++						{
++							mAvatar.ConjureLife();
++						}
++						if (mAvatar.ChantingMagick && GetBoundValuePressed(ControllerFunction.Cast_Magick, oState, mOldState))
++						{
++							mAvatar.Boost();
++						}
+@@ -570,0 +613,1 @@
++						mQueuedForceCastHeld = false;
+@@ -576,94 +620,14 @@
+-			if (ControlManager.Instance.IsInputLimited || mAvatar == null || mAvatar.Dead)
+-			{
+-				mHelpActive = false;
+-				mInputLocked = false;
+-			}
+-			else
+-			{
+-				if (base.Player == null)
+-				{
+-					return;
+-				}
+-				SpellWheel spellWheel = base.Player.SpellWheel;
+-				int num2 = -1;
+-				if (!mInputLocked && mCurrentDirection != 0)
+-				{
+-					num2 = SpellWheel.GetDirectionIndex(mCurrentDirection);
+-					for (int l = 0; l < mFadeTimers.Length; l++)
+-					{
+-						if (num2 == l)
+-						{
+-							mFadeTimers[l] += iDeltaTime;
+-							if (mFadeTimers[l] > 0.2f)
+-							{
+-								mFadeTimers[l] = 0.2f;
+-							}
+-							mMoveTimers[l] += iDeltaTime;
+-							if (mMoveTimers[l] > 0.2f)
+-							{
+-								mMoveTimers[l] = 0.2f;
+-							}
+-						}
+-						else
+-						{
+-							mFadeTimers[l] -= iDeltaTime;
+-							if (mFadeTimers[l] < 0f)
+-							{
+-								mFadeTimers[l] = 0f;
+-							}
+-						}
+-					}
+-					if (mStoredDirection != 0)
+-					{
+-						spellWheel.Direction(mStoredDirection);
+-					}
+-				}
+-				else
+-				{
+-					if (!mInputLocked && mVisualDirection != 0)
+-					{
+-						num2 = SpellWheel.GetDirectionIndex(mVisualDirection);
+-						spellWheel.Direction(mVisualDirection);
+-					}
+-					else
+-					{
+-						for (int m = 0; m < 4; m++)
+-						{
+-							if (mFadeTimers[m] <= 0f)
+-							{
+-								mMoveTimers[m] = 0f;
+-							}
+-						}
+-					}
+-					for (int n = 0; n < mFadeTimers.Length; n++)
+-					{
+-						if (num2 == n)
+-						{
+-							mFadeTimers[n] += iDeltaTime;
+-							if (mFadeTimers[n] > 0.2f)
+-							{
+-								mFadeTimers[n] = 0.2f;
+-							}
+-						}
+-						else
+-						{
+-							mFadeTimers[n] -= iDeltaTime;
+-							if (mFadeTimers[n] < 0f)
+-							{
+-								mFadeTimers[n] = 0f;
+-							}
+-						}
+-					}
+-				}
+-				spellWheel.FadeTimers(mFadeTimers);
+-				spellWheel.MoveTimers(mMoveTimers);
+-				if (mHelpActive && mHelpTime <= 0.2f)
+-				{
+-					mHelpTime = MathHelper.Min(mHelpTime + iDeltaTime, 0.2f);
+-				}
+-				else
+-				{
+-					mHelpTime = MathHelper.Max(mHelpTime - iDeltaTime, 0f);
+-				}
+-				spellWheel.HelpTimer(mHelpTime);
+-			}
++			mHelpTime = 0f;
++			if (ControlManager.Instance.IsInputLimited || mAvatar == null || mAvatar.Dead || base.Player == null)
++			{
++				return;
++			}
++			SpellWheel spellWheel = base.Player.SpellWheel;
++			for (int l = 0; l < mFadeTimers.Length; l++)
++			{
++				mFadeTimers[l] = 0f;
++				mMoveTimers[l] = 0f;
++			}
++			spellWheel.FadeTimers(mFadeTimers);
++			spellWheel.MoveTimers(mMoveTimers);
++			spellWheel.HelpTimer(0f);
+@@ -677,138 +641,0 @@
+-		protected void RightStickUpdate(Vector2 iValue)
+-		{
+-			if (mInverted)
+-			{
+-				Vector2.Negate(ref iValue, out iValue);
+-			}
+-			ControllerDirection controllerDirection = ControllerDirection.Center;
+-			if (mHelpActive)
+-			{
+-				return;
+-			}
+-			if (iValue.Length() < 0.3f)
+-			{
+-				mInputLocked = false;
+-				mVisualDirection = ControllerDirection.Center;
+-				mCurrentDirection = ControllerDirection.Center;
+-			}
+-			else
+-			{
+-				if (mInputLocked)
+-				{
+-					return;
+-				}
+-				if (iValue.Length() >= 0.3f && iValue.Length() < 0.6f)
+-				{
+-					if (Math.Abs(iValue.X) >= Math.Abs(iValue.Y))
+-					{
+-						if (iValue.X >= 0f)
+-						{
+-							mVisualDirection = ControllerDirection.Right;
+-						}
+-						else
+-						{
+-							mVisualDirection = ControllerDirection.Left;
+-						}
+-					}
+-					else if (iValue.Y >= 0f)
+-					{
+-						mVisualDirection = ControllerDirection.Up;
+-					}
+-					else
+-					{
+-						mVisualDirection = ControllerDirection.Down;
+-					}
+-					return;
+-				}
+-				if (mCurrentDirection == ControllerDirection.Center)
+-				{
+-					Vector2 value = new Vector2(1f, 0f);
+-					Vector2.Distance(ref value, ref iValue, out var result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Right;
+-					}
+-					value = new Vector2(-1f, 0f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Left;
+-					}
+-					value = new Vector2(0f, 1f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Up;
+-					}
+-					value = new Vector2(0f, -1f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Down;
+-					}
+-				}
+-				else
+-				{
+-					controllerDirection = mCurrentDirection;
+-					switch (mCurrentDirection)
+-					{
+-					case ControllerDirection.Up:
+-					case ControllerDirection.Down:
+-						if (Math.Abs(iValue.X) > 1f * Math.Abs(iValue.Y))
+-						{
+-							controllerDirection = ((iValue.X > 0f) ? ControllerDirection.Right : ControllerDirection.Left);
+-						}
+-						break;
+-					case ControllerDirection.Right:
+-					case ControllerDirection.Left:
+-						if (Math.Abs(iValue.Y) > 1f * Math.Abs(iValue.X))
+-						{
+-							controllerDirection = ((!(iValue.Y > 0f)) ? ControllerDirection.Down : ControllerDirection.Up);
+-						}
+-						break;
+-					}
+-				}
+-				Vector2.Subtract(ref iValue, ref mPreviousPosition, out var _);
+-				if (controllerDirection != mCurrentDirection && mCurrentDirection != 0)
+-				{
+-					mAvatar.HandleCombo(mCurrentDirection);
+-					mAvatar.HandleCombo(controllerDirection);
+-					mInputLocked = true;
+-				}
+-				else
+-				{
+-					mCurrentDirection = controllerDirection;
+-					mStoredDirection = mCurrentDirection;
+-					mPreviousPosition = iValue;
+-				}
+-			}
+-		}
+-
+-		protected ControllerDirection GetInterpolatedDirection(ControllerDirection iLastDirection, Vector2 iOldDirection, Vector2 iCurrentDirection)
+-		{
+-			for (float num = 0f; num <= 1f; num += 0.125f)
+-			{
+-				Vector2 iValue = Vector2.Lerp(iOldDirection, iCurrentDirection, num);
+-				ControllerDirection direction = GetDirection(iValue);
+-				if (direction != ControllerDirection.Dead && direction != iLastDirection)
+-				{
+-					return direction;
+-				}
+-			}
+-			return ControllerDirection.Dead;
+-		}
+-
+-		protected ControllerDirection GetInterpolatedDirection(Vector2 iOldDirection, Vector2 iCurrentDirection)
+-		{
+-			for (float num = 0f; num <= 1f; num += 0.125f)
+-			{
+-				Vector2 iValue = Vector2.Lerp(iOldDirection, iCurrentDirection, num);
+-				ControllerDirection direction = GetDirection(iValue);
+-				if (direction != ControllerDirection.Dead)
+-				{
+-					return direction;
+-				}
+-			}
+-			return ControllerDirection.Dead;
+-		}
+-
+@@ -887,0 +713,22 @@
++		}
++
++		private static Vector2 GetDPadMenuValue(State iState)
++		{
++			Vector2 result = default(Vector2);
++			if (iState.DPad[0])
++			{
++				result.X += 1f;
++			}
++			if (iState.DPad[2])
++			{
++				result.X -= 1f;
++			}
++			if (iState.DPad[1])
++			{
++				result.Y += 1f;
++			}
++			if (iState.DPad[3])
++			{
++				result.Y -= 1f;
++			}
++			return result;

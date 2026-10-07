@@ -1,0 +1,9 @@
+@@ -200,5 +200,0 @@
+-			TrackedThread trackedThread = new TrackedThread(Worker);
+-			trackedThread.Name = "WebCalls";
+-			trackedThread.Start();
+-			FileStream inputStream = File.OpenRead(Application.ExecutablePath);
+-			mGameHash = BitConverter.ToString(mSHA256.ComputeHash(inputStream)).Replace("-", "").ToLowerInvariant();
+@@ -219,1 +214,1 @@
+-					Thread.Sleep(1);
++					Thread.Sleep(100);

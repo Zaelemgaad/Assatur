@@ -1,0 +1,34 @@
+@@ -34,1 +34,1 @@
+-		protected int mLastScoreMultiplier = -1;
++		protected long mLastScoreMultiplier = -1L;
+@@ -40,1 +40,3 @@
+-		protected int mLastTotalScore = -1;
++		protected uint mLastTotalScore;
++
++		protected bool mHasLastTotalScore;
+@@ -66,1 +68,1 @@
+-				UpdateLabel(mTotalScore, "{0}", mSurvival.TotalScore, ref mLastTotalScore);
++				UpdateLabel(mTotalScore, "{0}", mSurvival.TotalScore, ref mLastTotalScore, ref mHasLastTotalScore);
+@@ -78,1 +80,1 @@
+-				UpdateLabel(mTotalScore, "{0}", mSurvival.TotalScore, ref mLastTotalScore);
++				UpdateLabel(mTotalScore, "{0}", mSurvival.TotalScore, ref mLastTotalScore, ref mHasLastTotalScore);
+@@ -131,0 +133,19 @@
++			}
++		}
++
++		private void UpdateLabel(Label iLabel, string iFormat, long iCurrentValue, ref long iLastValue)
++		{
++			if (iCurrentValue != iLastValue)
++			{
++				iLabel.Text = string.Format(iFormat, iCurrentValue);
++				iLastValue = iCurrentValue;
++			}
++		}
++
++		private void UpdateLabel(Label iLabel, string iFormat, uint iCurrentValue, ref uint iLastValue, ref bool iHasLastValue)
++		{
++			if (!iHasLastValue || iCurrentValue != iLastValue)
++			{
++				iLabel.Text = string.Format(iFormat, iCurrentValue);
++				iLastValue = iCurrentValue;
++				iHasLastValue = true;

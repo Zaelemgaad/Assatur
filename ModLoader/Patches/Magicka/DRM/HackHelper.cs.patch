@@ -1,0 +1,208 @@
+@@ -71,21 +71,1 @@
+-			Stream stream = null;
+-			try
+-			{
+-				stream = File.OpenRead(iFilename);
+-				byte[] iHash = sHasher.ComputeHash(stream);
+-				stream.Close();
+-				if (HashTable.GetAppID(iHash, out var oAppID))
+-				{
+-					if (oAppID != PARADOX_APPID && !SteamApps.BIsSubscribedApp(oAppID))
+-					{
+-						return License.No;
+-					}
+-					return License.Yes;
++			return License.Yes;
+-				}
+-				return License.Custom;
+-			}
+-			catch
+-			{
+-				stream?.Close();
+-			}
+-			return License.No;
+@@ -96,42 +76,1 @@
+-			if (iLevel.HashSum == null)
+-			{
+-				return License.Pending;
+-			}
+-			License result = License.Yes;
+-			if (HashTable.GetAppID(iLevel.HashSum, out var oAppID))
+-			{
+-				if (!SteamApps.BIsSubscribedApp(oAppID))
+-				{
+-					return License.No;
+-				}
+-			}
+-			else
+-			{
+-				result = License.Custom;
+-			}
+-			for (int i = 0; i < iLevel.Scenes.Length; i++)
+-			{
+-				if (HashTable.GetAppID(iLevel.Scenes[i].ScriptHashSum, out oAppID))
+-				{
+-					if (!SteamApps.BIsSubscribedApp(oAppID))
+-					{
+-						return License.No;
+-					}
+-				}
+-				else
+-				{
+-					result = License.Custom;
+-				}
+-				if (HashTable.GetAppID(iLevel.Scenes[i].ModelHashSum, out oAppID))
+-				{
+-					if (!SteamApps.BIsSubscribedApp(oAppID))
+-					{
+-						return License.No;
+-					}
+-				}
+-				else
+-				{
+-					result = License.Custom;
+-				}
+-			}
+-			return result;
++			return License.Yes;
+@@ -142,37 +81,1 @@
+-			if (iAvatar.HashSum == null)
+-			{
+-				return License.Yes;
++			return License.Yes;
+-			}
+-			License result = License.Yes;
+-			if (HashTable.GetAppID(iAvatar.HashSum, out var oAppID))
+-			{
+-				if (oAppID != PARADOX_APPID && !SteamApps.BIsSubscribedApp(oAppID))
+-				{
+-					return License.No;
+-				}
+-			}
+-			else
+-			{
+-				result = License.Custom;
+-			}
+-			switch (CheckLicense("content/data/characters/" + iAvatar.TypeName + ".xnb"))
+-			{
+-			case License.Custom:
+-				result = License.Custom;
+-				break;
+-			case License.No:
+-				return License.No;
+-			}
+-			if (sRobeAchievementDict.ContainsKey(iAvatar.Type))
+-			{
+-				string[] array = sRobeAchievementDict[iAvatar.Type];
+-				for (int i = 0; i < array.Length; i++)
+-				{
+-					if (!AchievementsManager.Instance.HasAchievement(array[i]))
+-					{
+-						return License.No;
+-					}
+-				}
+-				return License.Yes;
+-			}
+-			return result;
+@@ -183,26 +86,1 @@
+-			SHA256 sHA = SHA256.Create();
+-			License result = License.Yes;
+-			for (int i = 0; i < iPack.Items.Length; i++)
+-			{
+-				FileStream fileStream = null;
+-				try
+-				{
+-					fileStream = File.OpenRead(Path.Combine("content", iPack.Items[i] + ".xnb"));
+-					byte[] iHash = sHA.ComputeHash(fileStream);
+-					fileStream.Close();
+-					if (!HashTable.GetAppID(iHash, out var oAppID))
+-					{
+-						result = License.Custom;
+-					}
+-					else if (!SteamApps.BIsSubscribedApp(oAppID))
+-					{
+-						return License.No;
+-					}
+-				}
+-				catch
+-				{
+-					fileStream?.Close();
+-					return License.No;
+-				}
+-			}
+-			return result;
++			return License.Yes;
+@@ -213,8 +91,0 @@
+-			for (int i = 0; i < iPack.Magicks.Length; i++)
+-			{
+-				uint appIDForMagick = GetAppIDForMagick(iPack.Magicks[i]);
+-				if (!SteamApps.BIsSubscribedApp(appIDForMagick))
+-				{
+-					return License.No;
+-				}
+-			}
+@@ -233,23 +103,0 @@
+-			sStatus = Status.Pending;
+-			for (int i = 0; i < HashTable.CoreFiles.Length; i++)
+-			{
+-				Stream stream = null;
+-				try
+-				{
+-					string path = HashTable.CoreFiles[i];
+-					stream = File.OpenRead(path);
+-					byte[] iHash = sHasher.ComputeHash(stream);
+-					stream.Close();
+-					if (!HashTable.GetName(iHash, out var oName) || !Path.GetFileName(HashTable.CoreFiles[i]).Equals(oName, StringComparison.OrdinalIgnoreCase))
+-					{
+-						sStatus = Status.Hacked;
+-						return;
+-					}
+-				}
+-				catch (Exception)
+-				{
+-					stream?.Close();
+-					sStatus = Status.Hacked;
+-					return;
+-				}
+-			}
+@@ -259,29 +106,11 @@
+-		internal static bool CheckLicenseMythos()
+-		{
+-			return SteamApps.BIsSubscribedApp(73058u);
+-		}
+-
+-		internal static bool CheckLicenseVietnam()
+-		{
+-			return SteamApps.BIsSubscribedApp(42918u);
+-		}
+-
+-		internal static bool CheckLicenseOSOTC()
+-		{
+-			return SteamApps.BIsSubscribedApp(73093u);
+-		}
+-
+-		internal static bool CheckLicenseDungeons1()
+-		{
+-			return SteamApps.BIsSubscribedApp(73115u);
+-		}
+-
+-		internal static bool CheckLicenseDungeons2()
+-		{
+-			return SteamApps.BIsSubscribedApp(255980u);
+-		}
+-
+-		internal static bool CheckLicenseDungeons3()
+-		{
+-			return false;
+-		}
++		internal static bool CheckLicenseMythos() => true;
++
++		internal static bool CheckLicenseVietnam() => true;
++
++		internal static bool CheckLicenseOSOTC() => true;
++
++		internal static bool CheckLicenseDungeons1() => true;
++
++		internal static bool CheckLicenseDungeons2() => true;
++
++		internal static bool CheckLicenseDungeons3() => true;

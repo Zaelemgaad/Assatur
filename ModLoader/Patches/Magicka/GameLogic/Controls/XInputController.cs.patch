@@ -1,0 +1,1027 @@
+@@ -2,0 +2,1 @@
++using System.IO;
+@@ -32,1 +33,2 @@
+-				NegativeStick
++				NegativeStick,
++				StickMagnitude
+@@ -39,0 +41,4 @@
++			public BindingType ModifierType;
++
++			public int ModifierBindingIndex;
++
+@@ -43,0 +49,10 @@
++				ModifierType = BindingType.None;
++				ModifierBindingIndex = 0;
++			}
++
++			public Binding(BindingType iType, int iIndex, BindingType iModifierType, int iModifierIndex)
++			{
++				Type = iType;
++				BindingIndex = iIndex;
++				ModifierType = iModifierType;
++				ModifierBindingIndex = iModifierIndex;
+@@ -45,0 +61,4 @@
++
++		public const int LegacyBindingCount = 24;
++
++		public static int BindingCount => (int)ControllerFunction.NR_OF_FUNCTIONS;
+@@ -66,7 +86,1 @@
+-		private Vector2 mPreviousPosition;
+-
+-		private ControllerDirection mCurrentDirection;
+-
+-		private ControllerDirection mStoredDirection;
+-
+-		private ControllerDirection mVisualDirection;
++		private bool mQueuedForceCastHeld;
+@@ -78,4 +92,0 @@
+-		private bool mInputLocked;
+-
+-		private bool mHelpActive;
+-
+@@ -143,0 +153,246 @@
++		public static Binding GetDefaultBinding(ControllerFunction iFunction)
++		{
++			switch (iFunction)
++			{
++			case ControllerFunction.Move_Right:
++				return new Binding(Binding.BindingType.PositiveStick, 0);
++			case ControllerFunction.Move_Up:
++				return new Binding(Binding.BindingType.PositiveStick, 1);
++			case ControllerFunction.Move_Left:
++				return new Binding(Binding.BindingType.NegativeStick, 0);
++			case ControllerFunction.Move_Down:
++				return new Binding(Binding.BindingType.NegativeStick, 1);
++			case ControllerFunction.Menu_Select:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.A);
++			case ControllerFunction.Menu_Back:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.B);
++			case ControllerFunction.Spell_Right:
++				return new Binding(Binding.BindingType.PositiveStick, 2);
++			case ControllerFunction.Spell_Up:
++				return new Binding(Binding.BindingType.NegativeStick, 3);
++			case ControllerFunction.Spell_Left:
++				return new Binding(Binding.BindingType.NegativeStick, 2);
++			case ControllerFunction.Spell_Down:
++				return new Binding(Binding.BindingType.PositiveStick, 3);
++			case ControllerFunction.Magick_Next:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.DPadDown);
++			case ControllerFunction.Magick_Prev:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.DPadUp);
++			case ControllerFunction.Attack:
++				return new Binding(Binding.BindingType.Trigger, 1);
++			case ControllerFunction.Special:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.RightShoulder);
++			case ControllerFunction.Block:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.LeftStick);
++			case ControllerFunction.Interact:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.X);
++			case ControllerFunction.Boost:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.DPadLeft);
++			case ControllerFunction.Cast_Force:
++				return new Binding(Binding.BindingType.StickMagnitude, 1);
++			case ControllerFunction.Cast_Area:
++				return new Binding(Binding.BindingType.Trigger, 0);
++			case ControllerFunction.Cast_Self:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.RightShoulder);
++			case ControllerFunction.Cast_Magick:
++				return new Binding(Binding.BindingType.Trigger, 1);
++			case ControllerFunction.Pause:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.Start);
++			case ControllerFunction.Inventory:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.Back);
++			case ControllerFunction.Element_Fire:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.A);
++			case ControllerFunction.Element_Earth:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.B);
++			case ControllerFunction.Element_Lightning:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.X);
++			case ControllerFunction.Element_Arcane:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.Y);
++			case ControllerFunction.Element_Cold:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.A, Binding.BindingType.Button, (int)Buttons.LeftShoulder);
++			case ControllerFunction.Element_Shield:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.B, Binding.BindingType.Button, (int)Buttons.LeftShoulder);
++			case ControllerFunction.Element_Water:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.X, Binding.BindingType.Button, (int)Buttons.LeftShoulder);
++			case ControllerFunction.Element_Life:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.Y, Binding.BindingType.Button, (int)Buttons.LeftShoulder);
++			case ControllerFunction.Cast_Push:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.DPadRight);
++			case ControllerFunction.Cast_Tome_Magick:
++				return new Binding(Binding.BindingType.Button, (int)Buttons.DPadLeft);
++			default:
++				return new Binding(Binding.BindingType.None, 0);
++			}
++		}
++
++		public static Binding[] CreateDefaultBindings()
++		{
++			Binding[] array = new Binding[BindingCount];
++			for (int i = 0; i < array.Length; i++)
++			{
++				array[i] = GetDefaultBinding((ControllerFunction)i);
++			}
++			return array;
++		}
++
++		public static Binding[] EnsureBindings(Binding[] iBindings)
++		{
++			int oldLength = (iBindings == null) ? 0 : iBindings.Length;
++			if (oldLength == BindingCount)
++			{
++				UpgradeLegacyBindings(iBindings);
++				return iBindings;
++			}
++			Binding[] array = new Binding[BindingCount];
++			int copyLength = Math.Min(oldLength, BindingCount);
++			for (int i = 0; i < copyLength; i++)
++			{
++				array[i] = iBindings[i];
++			}
++			for (int j = copyLength; j < array.Length; j++)
++			{
++				array[j] = GetDefaultBinding((ControllerFunction)j);
++			}
++			if (oldLength == 0)
++			{
++				for (int k = 0; k < array.Length; k++)
++				{
++					array[k] = GetDefaultBinding((ControllerFunction)k);
++				}
++			}
++			else
++			{
++				UpgradeLegacyBindings(array);
++			}
++			return array;
++		}
++
++		public static void EnsureGlobalBindings()
++		{
++			GlobalSettings instance = GlobalSettings.Instance;
++			for (int i = 0; i < instance.XInputBindings.Length; i++)
++			{
++				instance.XInputBindings[i] = EnsureBindings(instance.XInputBindings[i]);
++			}
++		}
++
++		public static void WriteBinding(BinaryWriter iWriter, Binding iBinding)
++		{
++			iWriter.Write((byte)iBinding.Type);
++			iWriter.Write(iBinding.BindingIndex);
++			iWriter.Write((byte)iBinding.ModifierType);
++			iWriter.Write(iBinding.ModifierBindingIndex);
++		}
++
++		public static Binding ReadBinding(BinaryReader iReader)
++		{
++			Binding binding = default(Binding);
++			binding.Type = (Binding.BindingType)iReader.ReadByte();
++			binding.BindingIndex = iReader.ReadInt32();
++			binding.ModifierType = (Binding.BindingType)iReader.ReadByte();
++			binding.ModifierBindingIndex = iReader.ReadInt32();
++			return binding;
++		}
++
++		public static string GetBindingName(Binding iBinding)
++		{
++			string text = GetBindingPartName(iBinding.Type, iBinding.BindingIndex);
++			if (text == "-")
++			{
++				return text;
++			}
++			string text2 = GetBindingPartName(iBinding.ModifierType, iBinding.ModifierBindingIndex);
++			if (text2 == "-")
++			{
++				return text;
++			}
++			return text2 + " + " + text;
++		}
++
++		private static void UpgradeLegacyBindings(Binding[] iBindings)
++		{
++			if (iBindings[(int)ControllerFunction.Cast_Force].Type == Binding.BindingType.None)
++			{
++				iBindings[(int)ControllerFunction.Cast_Force] = GetDefaultBinding(ControllerFunction.Cast_Force);
++			}
++			else if (iBindings[(int)ControllerFunction.Cast_Force].Type == Binding.BindingType.Button && iBindings[(int)ControllerFunction.Cast_Force].BindingIndex == (int)Buttons.RightStick)
++			{
++				iBindings[(int)ControllerFunction.Cast_Force] = GetDefaultBinding(ControllerFunction.Cast_Force);
++			}
++			if (iBindings[(int)ControllerFunction.Special].Type == Binding.BindingType.Button && iBindings[(int)ControllerFunction.Special].BindingIndex == (int)Buttons.RightStick)
++			{
++				iBindings[(int)ControllerFunction.Special] = GetDefaultBinding(ControllerFunction.Special);
++			}
++		}
++
++		private static string GetBindingPartName(Binding.BindingType iType, int iIndex)
++		{
++			switch (iType)
++			{
++			case Binding.BindingType.Button:
++				if (iIndex == 0)
++				{
++					return "-";
++				}
++				return GetButtonName((Buttons)iIndex);
++			case Binding.BindingType.Trigger:
++				if (iIndex == 0)
++				{
++					return GetButtonName(Buttons.LeftTrigger);
++				}
++				if (iIndex == 1)
++				{
++					return GetButtonName(Buttons.RightTrigger);
++				}
++				return "-";
++			case Binding.BindingType.PositiveStick:
++				if (iIndex == 0)
++				{
++					return GetButtonName(Buttons.LeftThumbstickRight);
++				}
++				if (iIndex == 1)
++				{
++					return GetButtonName(Buttons.LeftThumbstickUp);
++				}
++				if (iIndex == 2)
++				{
++					return GetButtonName(Buttons.RightThumbstickRight);
++				}
++				if (iIndex == 3)
++				{
++					return GetButtonName(Buttons.RightThumbstickUp);
++				}
++				return "-";
++			case Binding.BindingType.NegativeStick:
++				if (iIndex == 0)
++				{
++					return GetButtonName(Buttons.LeftThumbstickLeft);
++				}
++				if (iIndex == 1)
++				{
++					return GetButtonName(Buttons.LeftThumbstickDown);
++				}
++				if (iIndex == 2)
++				{
++					return GetButtonName(Buttons.RightThumbstickLeft);
++				}
++				if (iIndex == 3)
++				{
++					return GetButtonName(Buttons.RightThumbstickDown);
++				}
++				return "-";
++			case Binding.BindingType.StickMagnitude:
++				if (iIndex == 0)
++				{
++					return "Left Stick Direction";
++				}
++				if (iIndex == 1)
++				{
++					return "Right Stick Direction";
++				}
++				return "-";
++			default:
++				return "-";
++			}
++		}
++
+@@ -145,7 +401,0 @@
+-			mBindings = GlobalSettings.Instance.XInputBindings[(int)iPlayerIndex];
+-			if (mBindings == null)
+-			{
+-				mBindings = new Binding[24];
+-				GlobalSettings.Instance.XInputBindings[(int)iPlayerIndex] = mBindings;
+-				LoadDefaults();
+-			}
+@@ -153,1 +402,2 @@
+-			mHelpActive = false;
++			mBindings = EnsureBindings(GlobalSettings.Instance.XInputBindings[(int)iPlayerIndex]);
++			GlobalSettings.Instance.XInputBindings[(int)iPlayerIndex] = mBindings;
+@@ -160,48 +410,60 @@
+-			ref Binding reference = ref mBindings[0];
+-			reference = new Binding(Binding.BindingType.PositiveStick, 0);
+-			ref Binding reference2 = ref mBindings[1];
+-			reference2 = new Binding(Binding.BindingType.PositiveStick, 1);
+-			ref Binding reference3 = ref mBindings[2];
+-			reference3 = new Binding(Binding.BindingType.NegativeStick, 0);
+-			ref Binding reference4 = ref mBindings[3];
+-			reference4 = new Binding(Binding.BindingType.NegativeStick, 1);
+-			ref Binding reference5 = ref mBindings[4];
+-			reference5 = new Binding(Binding.BindingType.Button, 4096);
+-			ref Binding reference6 = ref mBindings[5];
+-			reference6 = new Binding(Binding.BindingType.Button, 8192);
+-			ref Binding reference7 = ref mBindings[6];
+-			reference7 = new Binding(Binding.BindingType.PositiveStick, 2);
+-			ref Binding reference8 = ref mBindings[7];
+-			reference8 = new Binding(Binding.BindingType.PositiveStick, 3);
+-			ref Binding reference9 = ref mBindings[8];
+-			reference9 = new Binding(Binding.BindingType.NegativeStick, 2);
+-			ref Binding reference10 = ref mBindings[9];
+-			reference10 = new Binding(Binding.BindingType.NegativeStick, 3);
+-			ref Binding reference11 = ref mBindings[10];
+-			reference11 = new Binding(Binding.BindingType.Button, 2);
+-			ref Binding reference12 = ref mBindings[11];
+-			reference12 = new Binding(Binding.BindingType.Button, 1);
+-			ref Binding reference13 = ref mBindings[12];
+-			reference13 = new Binding(Binding.BindingType.Button, 4096);
+-			ref Binding reference14 = ref mBindings[13];
+-			reference14 = new Binding(Binding.BindingType.Button, 32768);
+-			ref Binding reference15 = ref mBindings[14];
+-			reference15 = new Binding(Binding.BindingType.Button, 512);
+-			ref Binding reference16 = ref mBindings[15];
+-			reference16 = new Binding(Binding.BindingType.Button, 16384);
+-			ref Binding reference17 = ref mBindings[16];
+-			reference17 = new Binding(Binding.BindingType.Button, 8192);
+-			ref Binding reference18 = ref mBindings[17];
+-			reference18 = new Binding(Binding.BindingType.Trigger, 1);
+-			ref Binding reference19 = ref mBindings[18];
+-			reference19 = new Binding(Binding.BindingType.Trigger, 0);
+-			ref Binding reference20 = ref mBindings[19];
+-			reference20 = new Binding(Binding.BindingType.Button, 32768);
+-			ref Binding reference21 = ref mBindings[20];
+-			reference21 = new Binding(Binding.BindingType.Button, 8192);
+-			ref Binding reference22 = ref mBindings[21];
+-			reference22 = new Binding(Binding.BindingType.Button, 16);
+-			ref Binding reference23 = ref mBindings[22];
+-			reference23 = new Binding(Binding.BindingType.Button, 32);
+-			ref Binding reference24 = ref mBindings[23];
+-			reference24 = new Binding(Binding.BindingType.Button, 128);
++			mBindings = CreateDefaultBindings();
++			GlobalSettings.Instance.XInputBindings[(int)mPlayerIndex] = mBindings;
++		}
++
++		private ButtonChar GetNotifierButtonChar(ControllerFunction iFunction)
++		{
++			Binding binding = mBindings[(int)iFunction];
++			if (binding.Type != Binding.BindingType.Button || binding.ModifierType != Binding.BindingType.None)
++			{
++				return ButtonChar.None;
++			}
++			switch ((Buttons)binding.BindingIndex)
++			{
++			case Buttons.DPadRight:
++				return ButtonChar.Right;
++			case Buttons.DPadDown:
++				return ButtonChar.Down;
++			case Buttons.DPadLeft:
++				return ButtonChar.Left;
++			case Buttons.DPadUp:
++				return ButtonChar.Up;
++			case Buttons.A:
++				return ButtonChar.A;
++			case Buttons.B:
++				return ButtonChar.B;
++			case Buttons.X:
++				return ButtonChar.X;
++			case Buttons.Y:
++				return ButtonChar.Y;
++			case Buttons.LeftStick:
++				return ButtonChar.LeftStick;
++			case Buttons.RightStick:
++				return ButtonChar.RightStick;
++			default:
++				return ButtonChar.None;
++			}
++		}
++
++		private static void AddHeldModifier(ref Binding iBinding, GamePadState iState, GamePadState iOldState)
++		{
++			for (int i = 0; i < 16; i++)
++			{
++				Buttons buttons = (Buttons)(1 << i);
++				if (iState.IsButtonDown(buttons) && iOldState.IsButtonDown(buttons) && (iBinding.Type != Binding.BindingType.Button || iBinding.BindingIndex != (int)buttons))
++				{
++					iBinding.ModifierType = Binding.BindingType.Button;
++					iBinding.ModifierBindingIndex = (int)buttons;
++					return;
++				}
++			}
++			if (iState.Triggers.Left >= 0.5f && iOldState.Triggers.Left >= 0.5f && (iBinding.Type != Binding.BindingType.Trigger || iBinding.BindingIndex != 0))
++			{
++				iBinding.ModifierType = Binding.BindingType.Trigger;
++				iBinding.ModifierBindingIndex = 0;
++			}
++			else if (iState.Triggers.Right >= 0.5f && iOldState.Triggers.Right >= 0.5f && (iBinding.Type != Binding.BindingType.Trigger || iBinding.BindingIndex != 1))
++			{
++				iBinding.ModifierType = Binding.BindingType.Trigger;
++				iBinding.ModifierBindingIndex = 1;
++			}
+@@ -221,1 +483,1 @@
+-				state = GamePad.GetState(mPlayerIndex);
++				state = GamePad.GetState(mPlayerIndex, GamePadDeadZone.None);
+@@ -226,0 +488,1 @@
++				mQueuedForceCastHeld = false;
+@@ -299,0 +562,1 @@
++					AddHeldModifier(ref obj, state, mOldState);
+@@ -306,17 +570,6 @@
+-			ControllerDirection controllerDirection = ControllerDirection.Center;
+-			if (GetBoundValueB(ControllerFunction.Move_Right, state))
+-			{
+-				controllerDirection |= ControllerDirection.Right;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Up, state))
+-			{
+-				controllerDirection |= ControllerDirection.Up;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Left, state))
+-			{
+-				controllerDirection |= ControllerDirection.Left;
+-			}
+-			if (GetBoundValueB(ControllerFunction.Move_Down, state))
+-			{
+-				controllerDirection |= ControllerDirection.Down;
+-			}
++			Vector2 menuMoveValue = default(Vector2);
++			menuMoveValue.X += GetBoundValueF(ControllerFunction.Move_Right, state);
++			menuMoveValue.X -= GetBoundValueF(ControllerFunction.Move_Left, state);
++			menuMoveValue.Y += GetBoundValueF(ControllerFunction.Move_Up, state);
++			menuMoveValue.Y -= GetBoundValueF(ControllerFunction.Move_Down, state);
++			ControllerDirection controllerDirection = GetMenuDirection(menuMoveValue, GetDPadMenuValue(state), mOldNavDirection);
+@@ -366,1 +619,1 @@
+-				if (state.Buttons.B == ButtonState.Pressed)
++				if (GetBoundValuePressed(ControllerFunction.Menu_Back, state, mOldState))
+@@ -443,1 +696,1 @@
+-					else if (GetBoundValuePressed(ControllerFunction.Attack, state, mOldState) | GetBoundValuePressed(ControllerFunction.Boost, state, mOldState) | GetBoundValuePressed(ControllerFunction.Interact, state, mOldState) | GetBoundValuePressed(ControllerFunction.Special, state, mOldState))
++					else if (GetBoundValuePressed(ControllerFunction.Attack, state, mOldState) | GetBoundValuePressed(ControllerFunction.Boost, state, mOldState) | GetBoundValuePressed(ControllerFunction.Interact, state, mOldState) | GetBoundValuePressed(ControllerFunction.Cast_Self, state, mOldState))
+@@ -463,1 +716,5 @@
++							ButtonChar specialButton = GetNotifierButtonChar(ControllerFunction.Cast_Self);
++							if (specialButton != ButtonChar.None)
++							{
+-							mAvatar.Player.NotifierButton.Show(mAvatar.SpecialAbilityName, ButtonChar.Y, mAvatar);
++								mAvatar.Player.NotifierButton.Show(mAvatar.SpecialAbilityName, specialButton, mAvatar);
++							}
+@@ -468,1 +725,5 @@
++							ButtonChar magickButton = GetNotifierButtonChar(ControllerFunction.Cast_Magick);
++							if (magickButton != ButtonChar.None)
++							{
+-							mAvatar.Player.NotifierButton.Show(@string, ButtonChar.B, mAvatar);
++								mAvatar.Player.NotifierButton.Show(@string, magickButton, mAvatar);
++							}
+@@ -475,1 +736,1 @@
+-								mAvatar.Player.NotifierButton.Show(string2, ButtonChar.B, mAvatar);
++								mAvatar.Player.NotifierButton.Show(string2, ButtonChar.Left, mAvatar);
+@@ -510,1 +771,1 @@
+-										mAvatar.Player.NotifierButton.Show(string5, ButtonChar.B, mAvatar);
++										mAvatar.Player.NotifierButton.Show(string5, ButtonChar.Left, mAvatar);
+@@ -536,1 +797,1 @@
+-						if (GetBoundValuePressed(ControllerFunction.Attack, state, mOldState) | (GetBoundValueB(ControllerFunction.Attack, state) & (mAvatar.WieldingGun | mAvatar.Equipment[0].Item.SpellCharged)))
++						if (!mAvatar.ChantingMagick && (GetBoundValuePressed(ControllerFunction.Attack, state, mOldState) | (GetBoundValueB(ControllerFunction.Attack, state) & (mAvatar.WieldingGun | mAvatar.Equipment[0].Item.SpellCharged))))
+@@ -544,1 +805,2 @@
+-						if (GetBoundValuePressed(ControllerFunction.Boost, state, mOldState))
++						bool castTomeMagickPressed = GetBoundValuePressed(ControllerFunction.Cast_Tome_Magick, state, mOldState);
++						if (GetBoundValuePressed(ControllerFunction.Boost, state, mOldState) && !castTomeMagickPressed)
+@@ -552,1 +814,1 @@
+-						if (GetBoundValuePressed(ControllerFunction.Special, state, mOldState))
++						if (GetBoundValuePressed(ControllerFunction.Cast_Self, state, mOldState) | GetBoundValuePressed(ControllerFunction.Special, state, mOldState))
+@@ -556,1 +818,1 @@
+-						else if (GetBoundValueReleased(ControllerFunction.Special, state, mOldState))
++						else if (GetBoundValueReleased(ControllerFunction.Cast_Self, state, mOldState) | GetBoundValueReleased(ControllerFunction.Special, state, mOldState))
+@@ -564,8 +826,0 @@
+-						if (GetBoundValueB(ControllerFunction.Spell_Wheel, state))
+-						{
+-							mHelpActive = true;
+-						}
+-						else
+-						{
+-							mHelpActive = false;
+-						}
+@@ -573,13 +827,1 @@
+-						Vector2 iValue = default(Vector2);
+-						iValue.X += GetBoundValueF(ControllerFunction.Spell_Right, state);
+-						iValue.X -= GetBoundValueF(ControllerFunction.Spell_Left, state);
+-						iValue.Y += GetBoundValueF(ControllerFunction.Spell_Up, state);
+-						iValue.Y -= GetBoundValueF(ControllerFunction.Spell_Down, state);
+-						if (mAvatar.Polymorphed)
+-						{
+-							RightStickUpdate(default(Vector2));
+-						}
+-						else
+-						{
+-							RightStickUpdate(iValue);
+-						}
++						Vector2 iValue = ApplyRadialDeadZone(state.ThumbSticks.Right, 0.2f);
+@@ -601,0 +843,4 @@
++						if (iValue.LengthSquared() > 0f)
++						{
++							mAvatar.SetControllerAimDirection(iValue);
++						}
+@@ -609,1 +855,12 @@
+-						if (GetBoundValueB(ControllerFunction.Cast_Force, state))
++						bool forceCastInputHeld = GetBoundValueB(ControllerFunction.Cast_Force, state);
++						bool hasQueuedSpell = mAvatar.SpellQueue.Count > 0;
++						if (!forceCastInputHeld)
++						{
++							mQueuedForceCastHeld = false;
++						}
++						else if (hasQueuedSpell)
++						{
++							mQueuedForceCastHeld = true;
++						}
++						bool forceHeld = (forceCastInputHeld && mQueuedForceCastHeld) || (!mQueuedForceCastHeld && !hasQueuedSpell && GetBoundValueB(ControllerFunction.Cast_Push, state));
++						if (forceHeld)
+@@ -617,1 +874,8 @@
++						if (castTomeMagickPressed)
++						{
++							if (!mAvatar.CastTomeMagick())
++							{
++								mAvatar.Boost();
++							}
++						}
+-						if (GetBoundValuePressed(ControllerFunction.Magick_Next, state, mOldState))
++						else if (GetBoundValuePressed(ControllerFunction.Magick_Next, state, mOldState))
+@@ -642,0 +906,36 @@
++						if (GetBoundValuePressed(ControllerFunction.Element_Fire, state, mOldState))
++						{
++							mAvatar.ConjureFire();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Earth, state, mOldState))
++						{
++							mAvatar.ConjureEarth();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Lightning, state, mOldState))
++						{
++							mAvatar.ConjureLightning();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Arcane, state, mOldState))
++						{
++							mAvatar.ConjureArcane();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Cold, state, mOldState))
++						{
++							mAvatar.ConjureCold();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Shield, state, mOldState))
++						{
++							mAvatar.ConjureShield();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Water, state, mOldState))
++						{
++							mAvatar.ConjureWater();
++						}
++						if (GetBoundValuePressed(ControllerFunction.Element_Life, state, mOldState))
++						{
++							mAvatar.ConjureLife();
++						}
++						if (mAvatar.ChantingMagick && GetBoundValuePressed(ControllerFunction.Cast_Magick, state, mOldState))
++						{
++							mAvatar.Boost();
++						}
+@@ -645,0 +945,1 @@
++						mQueuedForceCastHeld = false;
+@@ -651,94 +952,14 @@
+-			if (ControlManager.Instance.IsInputLimited || mAvatar == null || mAvatar.Dead)
+-			{
+-				mHelpActive = false;
+-				mInputLocked = false;
+-			}
+-			else
+-			{
+-				if (base.Player == null)
+-				{
+-					return;
+-				}
+-				SpellWheel spellWheel = base.Player.SpellWheel;
+-				int num2 = -1;
+-				if (!mInputLocked && mCurrentDirection != 0)
+-				{
+-					num2 = SpellWheel.GetDirectionIndex(mCurrentDirection);
+-					for (int j = 0; j < mFadeTimers.Length; j++)
+-					{
+-						if (num2 == j)
+-						{
+-							mFadeTimers[j] += iDeltaTime;
+-							if (mFadeTimers[j] > 0.2f)
+-							{
+-								mFadeTimers[j] = 0.2f;
+-							}
+-							mMoveTimers[j] += iDeltaTime;
+-							if (mMoveTimers[j] > 0.2f)
+-							{
+-								mMoveTimers[j] = 0.2f;
+-							}
+-						}
+-						else
+-						{
+-							mFadeTimers[j] -= iDeltaTime;
+-							if (mFadeTimers[j] < 0f)
+-							{
+-								mFadeTimers[j] = 0f;
+-							}
+-						}
+-					}
+-					if (mStoredDirection != 0)
+-					{
+-						spellWheel.Direction(mStoredDirection);
+-					}
+-				}
+-				else
+-				{
+-					if (!mInputLocked && mVisualDirection != 0)
+-					{
+-						num2 = SpellWheel.GetDirectionIndex(mVisualDirection);
+-						spellWheel.Direction(mVisualDirection);
+-					}
+-					else
+-					{
+-						for (int k = 0; k < 4; k++)
+-						{
+-							if (mFadeTimers[k] <= 0f)
+-							{
+-								mMoveTimers[k] = 0f;
+-							}
+-						}
+-					}
+-					for (int l = 0; l < mFadeTimers.Length; l++)
+-					{
+-						if (num2 == l)
+-						{
+-							mFadeTimers[l] += iDeltaTime;
+-							if (mFadeTimers[l] > 0.2f)
+-							{
+-								mFadeTimers[l] = 0.2f;
+-							}
+-						}
+-						else
+-						{
+-							mFadeTimers[l] -= iDeltaTime;
+-							if (mFadeTimers[l] < 0f)
+-							{
+-								mFadeTimers[l] = 0f;
+-							}
+-						}
+-					}
+-				}
+-				spellWheel.FadeTimers(mFadeTimers);
+-				spellWheel.MoveTimers(mMoveTimers);
+-				if (mHelpActive && mHelpTime <= 0.2f)
+-				{
+-					mHelpTime = MathHelper.Min(mHelpTime + iDeltaTime, 0.2f);
+-				}
+-				else
+-				{
+-					mHelpTime = MathHelper.Max(mHelpTime - iDeltaTime, 0f);
+-				}
+-				spellWheel.HelpTimer(mHelpTime);
+-			}
++			mHelpTime = 0f;
++			if (ControlManager.Instance.IsInputLimited || mAvatar == null || mAvatar.Dead || base.Player == null)
++			{
++				return;
++			}
++			SpellWheel spellWheel = base.Player.SpellWheel;
++			for (int j = 0; j < mFadeTimers.Length; j++)
++			{
++				mFadeTimers[j] = 0f;
++				mMoveTimers[j] = 0f;
++			}
++			spellWheel.FadeTimers(mFadeTimers);
++			spellWheel.MoveTimers(mMoveTimers);
++			spellWheel.HelpTimer(0f);
+@@ -752,138 +973,0 @@
+-		protected void RightStickUpdate(Vector2 iValue)
+-		{
+-			if (mInverted)
+-			{
+-				Vector2.Negate(ref iValue, out iValue);
+-			}
+-			ControllerDirection controllerDirection = ControllerDirection.Center;
+-			if (mHelpActive)
+-			{
+-				return;
+-			}
+-			if (iValue.Length() < 0.3f)
+-			{
+-				mInputLocked = false;
+-				mVisualDirection = ControllerDirection.Center;
+-				mCurrentDirection = ControllerDirection.Center;
+-			}
+-			else
+-			{
+-				if (mInputLocked)
+-				{
+-					return;
+-				}
+-				if (iValue.Length() >= 0.3f && iValue.Length() < 0.6f)
+-				{
+-					if (Math.Abs(iValue.X) >= Math.Abs(iValue.Y))
+-					{
+-						if (iValue.X >= 0f)
+-						{
+-							mVisualDirection = ControllerDirection.Right;
+-						}
+-						else
+-						{
+-							mVisualDirection = ControllerDirection.Left;
+-						}
+-					}
+-					else if (iValue.Y >= 0f)
+-					{
+-						mVisualDirection = ControllerDirection.Up;
+-					}
+-					else
+-					{
+-						mVisualDirection = ControllerDirection.Down;
+-					}
+-					return;
+-				}
+-				if (mCurrentDirection == ControllerDirection.Center)
+-				{
+-					Vector2 value = new Vector2(1f, 0f);
+-					Vector2.Distance(ref value, ref iValue, out var result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Right;
+-					}
+-					value = new Vector2(-1f, 0f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Left;
+-					}
+-					value = new Vector2(0f, 1f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Up;
+-					}
+-					value = new Vector2(0f, -1f);
+-					Vector2.Distance(ref value, ref iValue, out result);
+-					if (result < 0.5f)
+-					{
+-						controllerDirection = ControllerDirection.Down;
+-					}
+-				}
+-				else
+-				{
+-					controllerDirection = mCurrentDirection;
+-					switch (mCurrentDirection)
+-					{
+-					case ControllerDirection.Up:
+-					case ControllerDirection.Down:
+-						if (Math.Abs(iValue.X) > 1f * Math.Abs(iValue.Y))
+-						{
+-							controllerDirection = ((iValue.X > 0f) ? ControllerDirection.Right : ControllerDirection.Left);
+-						}
+-						break;
+-					case ControllerDirection.Right:
+-					case ControllerDirection.Left:
+-						if (Math.Abs(iValue.Y) > 1f * Math.Abs(iValue.X))
+-						{
+-							controllerDirection = ((!(iValue.Y > 0f)) ? ControllerDirection.Down : ControllerDirection.Up);
+-						}
+-						break;
+-					}
+-				}
+-				Vector2.Subtract(ref iValue, ref mPreviousPosition, out var _);
+-				if (controllerDirection != mCurrentDirection && mCurrentDirection != 0)
+-				{
+-					mAvatar.HandleCombo(mCurrentDirection);
+-					mAvatar.HandleCombo(controllerDirection);
+-					mInputLocked = true;
+-				}
+-				else
+-				{
+-					mCurrentDirection = controllerDirection;
+-					mStoredDirection = mCurrentDirection;
+-					mPreviousPosition = iValue;
+-				}
+-			}
+-		}
+-
+-		protected ControllerDirection GetInterpolatedDirection(ControllerDirection iLastDirection, Vector2 iOldDirection, Vector2 iCurrentDirection)
+-		{
+-			for (float num = 0f; num <= 1f; num += 0.125f)
+-			{
+-				Vector2 iValue = Vector2.Lerp(iOldDirection, iCurrentDirection, num);
+-				ControllerDirection direction = GetDirection(iValue);
+-				if (direction != ControllerDirection.Dead && direction != iLastDirection)
+-				{
+-					return direction;
+-				}
+-			}
+-			return ControllerDirection.Dead;
+-		}
+-
+-		protected ControllerDirection GetInterpolatedDirection(Vector2 iOldDirection, Vector2 iCurrentDirection)
+-		{
+-			for (float num = 0f; num <= 1f; num += 0.125f)
+-			{
+-				Vector2 iValue = Vector2.Lerp(iOldDirection, iCurrentDirection, num);
+-				ControllerDirection direction = GetDirection(iValue);
+-				if (direction != ControllerDirection.Dead)
+-				{
+-					return direction;
+-				}
+-			}
+-			return ControllerDirection.Dead;
+-		}
+-
+@@ -964,0 +1047,22 @@
++		private static Vector2 GetDPadMenuValue(GamePadState iState)
++		{
++			Vector2 result = default(Vector2);
++			if (iState.IsButtonDown(Buttons.DPadRight))
++			{
++				result.X += 1f;
++			}
++			if (iState.IsButtonDown(Buttons.DPadLeft))
++			{
++				result.X -= 1f;
++			}
++			if (iState.IsButtonDown(Buttons.DPadUp))
++			{
++				result.Y += 1f;
++			}
++			if (iState.IsButtonDown(Buttons.DPadDown))
++			{
++				result.Y -= 1f;
++			}
++			return result;
++		}
++
+@@ -966,1 +1071,66 @@
+-			switch (mBindings[(int)iFunction].Type)
++			Binding binding = mBindings[(int)iFunction];
++			if (!IsModifierActive(binding, iState) || ShouldSuppressUnmodifiedBinding(binding, iState))
++			{
++				return 0f;
++			}
++			return GetBindingPartValue(binding.Type, binding.BindingIndex, iState);
++		}
++
++		private bool GetBoundValueB(ControllerFunction iFunction, GamePadState iState)
++		{
++			return IsBindingActive(mBindings[(int)iFunction], iState) && !ShouldSuppressUnmodifiedBinding(mBindings[(int)iFunction], iState);
++		}
++
++		private bool GetBoundValuePressed(ControllerFunction iFunction, GamePadState iNewState, GamePadState iOldState)
++		{
++			Binding binding = mBindings[(int)iFunction];
++			return IsModifierActive(binding, iNewState) && !ShouldSuppressUnmodifiedBinding(binding, iNewState) && IsBindingPartActive(binding.Type, binding.BindingIndex, iNewState) && !IsBindingPartActive(binding.Type, binding.BindingIndex, iOldState);
++		}
++
++		private bool GetBoundValueReleased(ControllerFunction iFunction, GamePadState iNewState, GamePadState iOldState)
++		{
++			Binding binding = mBindings[(int)iFunction];
++			return IsBindingActive(binding, iOldState) && !ShouldSuppressUnmodifiedBinding(binding, iOldState) && (!IsBindingActive(binding, iNewState) || ShouldSuppressUnmodifiedBinding(binding, iNewState));
++		}
++
++		private bool ShouldSuppressUnmodifiedBinding(Binding iBinding, GamePadState iState)
++		{
++			if (iBinding.ModifierType != Binding.BindingType.None)
++			{
++				return false;
++			}
++			for (int i = 0; i < mBindings.Length; i++)
++			{
++				Binding binding = mBindings[i];
++				if (binding.ModifierType != Binding.BindingType.None && BindingPrimaryMatches(iBinding, binding) && IsBindingPartActive(binding.ModifierType, binding.ModifierBindingIndex, iState))
++				{
++					return true;
++				}
++			}
++			return false;
++		}
++
++		private static bool BindingPrimaryMatches(Binding iFirst, Binding iSecond)
++		{
++			return iFirst.Type == iSecond.Type && iFirst.BindingIndex == iSecond.BindingIndex;
++		}
++
++		private static bool IsBindingActive(Binding iBinding, GamePadState iState)
++		{
++			return IsModifierActive(iBinding, iState) && IsBindingPartActive(iBinding.Type, iBinding.BindingIndex, iState);
++		}
++
++		private static bool IsModifierActive(Binding iBinding, GamePadState iState)
++		{
++			return iBinding.ModifierType == Binding.BindingType.None || IsBindingPartActive(iBinding.ModifierType, iBinding.ModifierBindingIndex, iState);
++		}
++
++		private static bool IsBindingPartActive(Binding.BindingType iType, int iIndex, GamePadState iState)
++		{
++			float threshold = (iType == Binding.BindingType.StickMagnitude) ? 0.6f : 0.5f;
++			return GetBindingPartValue(iType, iIndex, iState) >= threshold;
++		}
++
++		private static float GetBindingPartValue(Binding.BindingType iType, int iIndex, GamePadState iState)
++		{
++			switch (iType)
+@@ -969,1 +1139,1 @@
+-				if (!iState.IsButtonDown((Buttons)mBindings[(int)iFunction].BindingIndex))
++				if (!iState.IsButtonDown((Buttons)iIndex))
+@@ -975,1 +1145,1 @@
+-				return mBindings[(int)iFunction].BindingIndex switch
++				return iIndex switch
+@@ -982,1 +1152,1 @@
+-				return mBindings[(int)iFunction].BindingIndex switch
++				return iIndex switch
+@@ -991,1 +1161,1 @@
+-				return mBindings[(int)iFunction].BindingIndex switch
++				return iIndex switch
+@@ -999,0 +1169,10 @@
++			case Binding.BindingType.StickMagnitude:
++				if (iIndex == 0)
++				{
++					return Math.Min(iState.ThumbSticks.Left.Length(), 1f);
++				}
++				if (iIndex == 1)
++				{
++					return Math.Min(iState.ThumbSticks.Right.Length(), 1f);
++				}
++				return 0f;
+@@ -1002,93 +1182,0 @@
+-		}
+-
+-		private bool GetBoundValueB(ControllerFunction iFunction, GamePadState iState)
+-		{
+-			return mBindings[(int)iFunction].Type switch
+-			{
+-				Binding.BindingType.Button => iState.IsButtonDown((Buttons)mBindings[(int)iFunction].BindingIndex), 
+-				Binding.BindingType.Trigger => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => iState.Triggers.Left >= 0.5f, 
+-					1 => iState.Triggers.Right >= 0.5f, 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.PositiveStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => iState.ThumbSticks.Left.X >= 0.5f, 
+-					1 => iState.ThumbSticks.Left.Y >= 0.5f, 
+-					2 => iState.ThumbSticks.Right.X >= 0.5f, 
+-					3 => iState.ThumbSticks.Right.Y >= 0.5f, 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.NegativeStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => iState.ThumbSticks.Left.X <= -0.5f, 
+-					1 => iState.ThumbSticks.Left.Y <= -0.5f, 
+-					2 => iState.ThumbSticks.Right.X <= -0.5f, 
+-					3 => iState.ThumbSticks.Right.Y <= -0.5f, 
+-					_ => false, 
+-				}, 
+-				_ => false, 
+-			};
+-		}
+-
+-		private bool GetBoundValuePressed(ControllerFunction iFunction, GamePadState iNewState, GamePadState iOldState)
+-		{
+-			return mBindings[(int)iFunction].Type switch
+-			{
+-				Binding.BindingType.Button => iNewState.IsButtonDown((Buttons)mBindings[(int)iFunction].BindingIndex) & iOldState.IsButtonUp((Buttons)mBindings[(int)iFunction].BindingIndex), 
+-				Binding.BindingType.Trigger => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iNewState.Triggers.Left >= 0.5f) & (iOldState.Triggers.Left < 0.5f), 
+-					1 => (iNewState.Triggers.Right >= 0.5f) & (iOldState.Triggers.Right < 0.5f), 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.PositiveStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iNewState.ThumbSticks.Left.X >= 0.5f) & (iOldState.ThumbSticks.Left.X < 0.5f), 
+-					1 => (iNewState.ThumbSticks.Left.Y >= 0.5f) & (iOldState.ThumbSticks.Left.Y < 0.5f), 
+-					2 => (iNewState.ThumbSticks.Right.X >= 0.5f) & (iOldState.ThumbSticks.Right.X < 0.5f), 
+-					3 => (iNewState.ThumbSticks.Right.Y >= 0.5f) & (iOldState.ThumbSticks.Right.Y < 0.5f), 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.NegativeStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iNewState.ThumbSticks.Left.X <= -0.5f) & (iOldState.ThumbSticks.Left.X > -0.5f), 
+-					1 => (iNewState.ThumbSticks.Left.Y <= -0.5f) & (iOldState.ThumbSticks.Left.Y > -0.5f), 
+-					2 => (iNewState.ThumbSticks.Right.X <= -0.5f) & (iOldState.ThumbSticks.Right.X > -0.5f), 
+-					3 => (iNewState.ThumbSticks.Right.Y <= -0.5f) & (iOldState.ThumbSticks.Right.Y > -0.5f), 
+-					_ => false, 
+-				}, 
+-				_ => false, 
+-			};
+-		}
+-
+-		private bool GetBoundValueReleased(ControllerFunction iFunction, GamePadState iNewState, GamePadState iOldState)
+-		{
+-			return mBindings[(int)iFunction].Type switch
+-			{
+-				Binding.BindingType.Button => iOldState.IsButtonDown((Buttons)mBindings[(int)iFunction].BindingIndex) & iNewState.IsButtonUp((Buttons)mBindings[(int)iFunction].BindingIndex), 
+-				Binding.BindingType.Trigger => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iOldState.Triggers.Left >= 0.5f) & (iNewState.Triggers.Left < 0.5f), 
+-					1 => (iOldState.Triggers.Right >= 0.5f) & (iNewState.Triggers.Right < 0.5f), 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.PositiveStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iOldState.ThumbSticks.Left.X >= 0.5f) & (iNewState.ThumbSticks.Left.X < 0.5f), 
+-					1 => (iOldState.ThumbSticks.Left.Y >= 0.5f) & (iNewState.ThumbSticks.Left.Y < 0.5f), 
+-					2 => (iOldState.ThumbSticks.Right.X >= 0.5f) & (iNewState.ThumbSticks.Right.X < 0.5f), 
+-					3 => (iOldState.ThumbSticks.Right.Y >= 0.5f) & (iNewState.ThumbSticks.Right.Y < 0.5f), 
+-					_ => false, 
+-				}, 
+-				Binding.BindingType.NegativeStick => mBindings[(int)iFunction].BindingIndex switch
+-				{
+-					0 => (iOldState.ThumbSticks.Left.X <= -0.5f) & (iNewState.ThumbSticks.Left.X > -0.5f), 
+-					1 => (iOldState.ThumbSticks.Left.Y <= -0.5f) & (iNewState.ThumbSticks.Left.Y > -0.5f), 
+-					2 => (iOldState.ThumbSticks.Right.X <= -0.5f) & (iNewState.ThumbSticks.Right.X > -0.5f), 
+-					3 => (iOldState.ThumbSticks.Right.Y <= -0.5f) & (iNewState.ThumbSticks.Right.Y > -0.5f), 
+-					_ => false, 
+-				}, 
+-				_ => false, 
+-			};

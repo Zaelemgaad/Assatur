@@ -1,0 +1,6 @@
+@@ -192,1 +192,1 @@
+-				int num2 = Helper.CountSetBits(iMagicks);
++				int num2 = Helper.CountSetBits(iMagicks & 1040187402uL);
+@@ -198,1 +198,1 @@
+-				int num4 = Helper.CountSetBits(iMagicks);
++				int num4 = Helper.CountSetBits(iMagicks & 8384510uL);

@@ -1,0 +1,118 @@
+@@ -19,0 +19,2 @@
++		private const string ASSATUR_CONTROLLER_BINDINGS = "ASSATUR_CONTROLLER_BINDINGS_V1";
++
+@@ -99,0 +101,100 @@
++		private void NormalizeControllerBindings()
++		{
++			GlobalSettings instance = GlobalSettings.Instance;
++			XInputController.EnsureGlobalBindings();
++			List<Guid> list = new List<Guid>(instance.DInputBindings.Keys);
++			foreach (Guid item in list)
++			{
++				instance.DInputBindings[item] = DirectInputController.EnsureBindings(instance.DInputBindings[item]);
++			}
++		}
++
++		private void TryLoadAssaturControllerBindings(BinaryReader iReader)
++		{
++			if (iReader == null || iReader.BaseStream.Position >= iReader.BaseStream.Length)
++			{
++				return;
++			}
++			long position = iReader.BaseStream.Position;
++			try
++			{
++				if (iReader.ReadString() != ASSATUR_CONTROLLER_BINDINGS)
++				{
++					iReader.BaseStream.Position = position;
++					return;
++				}
++				GlobalSettings instance = GlobalSettings.Instance;
++				int num = iReader.ReadInt32();
++				for (int i = 0; i < 4; i++)
++				{
++					XInputController.Binding[] array = XInputController.EnsureBindings(instance.XInputBindings[i]);
++					instance.XInputBindings[i] = array;
++					for (int j = 0; j < num; j++)
++					{
++						XInputController.Binding binding = XInputController.ReadBinding(iReader);
++						if (j < XInputController.BindingCount)
++						{
++							array[j] = binding;
++						}
++					}
++				}
++				int num2 = iReader.ReadInt32();
++				for (int k = 0; k < num2; k++)
++				{
++					Guid key = new Guid(iReader.ReadBytes(16));
++					int num3 = iReader.ReadInt32();
++					DirectInputController.Binding[] array2;
++					if (!instance.DInputBindings.TryGetValue(key, out array2))
++					{
++						array2 = DirectInputController.EnsureBindings(null);
++					}
++					else
++					{
++						array2 = DirectInputController.EnsureBindings(array2);
++					}
++					for (int l = 0; l < num3; l++)
++					{
++						DirectInputController.Binding binding2 = default(DirectInputController.Binding);
++						binding2.Type = (DirectInputController.Binding.BindingType)iReader.ReadByte();
++						binding2.BindingIndex = iReader.ReadInt32();
++						if (l < DirectInputController.BindingCount)
++						{
++							array2[l] = binding2;
++						}
++					}
++					instance.DInputBindings[key] = array2;
++				}
++			}
++			catch
++			{
++				iReader.BaseStream.Position = iReader.BaseStream.Length;
++			}
++		}
++
++		private void WriteAssaturControllerBindings(BinaryWriter iWriter, GlobalSettings iSettings)
++		{
++			iWriter.Write(ASSATUR_CONTROLLER_BINDINGS);
++			iWriter.Write(XInputController.BindingCount);
++			for (int i = 0; i < 4; i++)
++			{
++				XInputController.Binding[] array = XInputController.EnsureBindings(iSettings.XInputBindings[i]);
++				iSettings.XInputBindings[i] = array;
++				for (int j = 0; j < XInputController.BindingCount; j++)
++				{
++					XInputController.WriteBinding(iWriter, array[j]);
++				}
++			}
++			iWriter.Write(iSettings.DInputBindings.Count);
++			foreach (KeyValuePair<Guid, DirectInputController.Binding[]> dInputBinding in iSettings.DInputBindings)
++			{
++				iWriter.Write(dInputBinding.Key.ToByteArray());
++				DirectInputController.Binding[] array2 = DirectInputController.EnsureBindings(dInputBinding.Value);
++				iWriter.Write(DirectInputController.BindingCount);
++				for (int k = 0; k < DirectInputController.BindingCount; k++)
++				{
++					iWriter.Write((byte)array2[k].Type);
++					iWriter.Write(array2[k].BindingIndex);
++				}
++			}
++		}
++
+@@ -907,0 +1009,1 @@
++				TryLoadAssaturControllerBindings(binaryReader);
+@@ -913,0 +1016,1 @@
++			NormalizeControllerBindings();
+@@ -924,0 +1028,1 @@
++				NormalizeControllerBindings();
+@@ -951,1 +1056,1 @@
+-					for (int k = 0; k < 24; k++)
++					for (int k = 0; k < XInputController.LegacyBindingCount; k++)
+@@ -961,1 +1066,1 @@
+-					for (int l = 0; l < 24; l++)
++					for (int l = 0; l < DirectInputController.LegacyBindingCount; l++)
+@@ -972,0 +1077,1 @@
++				WriteAssaturControllerBindings(binaryWriter, instance);

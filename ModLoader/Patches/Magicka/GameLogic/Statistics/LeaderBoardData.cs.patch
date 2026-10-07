@@ -1,0 +1,21 @@
+@@ -14,1 +14,1 @@
+-					return y.Score - x.Score;
++					return y.Score.CompareTo(x.Score);
+@@ -16,1 +16,1 @@
+-				return y.Data1 - x.Data1;
++				return y.Data1.CompareTo(x.Data1);
+@@ -38,1 +38,1 @@
+-				return y.Score - x.Score;
++				return y.Score.CompareTo(x.Score);
+@@ -48,1 +48,1 @@
+-		public int Score;
++		public uint Score;
+@@ -64,1 +64,1 @@
+-			Score = iReader.ReadInt32();
++			Score = iReader.ReadUInt32();
+@@ -76,1 +76,1 @@
+-		public LeaderBoardData(int iScore, string iGamerTag, byte iWaves)
++		public LeaderBoardData(uint iScore, string iGamerTag, byte iWaves)
+@@ -83,1 +83,1 @@
+-		public LeaderBoardData(int iScore, string iGamerTag, int iTime)
++		public LeaderBoardData(uint iScore, string iGamerTag, int iTime)

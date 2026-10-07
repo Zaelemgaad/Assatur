@@ -1,0 +1,142 @@
+@@ -60,0 +60,4 @@
++			private int mMagickIconOffset;
++
++			private int mMagickPrimitiveStart;
++
+@@ -62,1 +66,1 @@
+-			public RenderData(int iSize)
++			public RenderData(int iSize, int iMagickIconOffset)
+@@ -72,0 +76,2 @@
++				mMagickIconOffset = iMagickIconOffset;
++				mMagickPrimitiveStart = 6 + 6 * iMagickIconOffset;
+@@ -137,1 +143,1 @@
+-					for (int j = 0; j < Math.Min(mElementsToRender - mCombiningToRender, 5); j++)
++					for (int j = 0; j < Math.Min(mElementsToRender - mCombiningToRender, mMagickElementsToRender); j++)
+@@ -139,2 +145,2 @@
+-						mIconPositions[25 + j].X += 2000f;
++						mIconPositions[mMagickIconOffset + j].X += 2000f;
+-						mIconPositions[25 + j].Y += 2000f;
++						mIconPositions[mMagickIconOffset + j].Y += 2000f;
+@@ -144,2 +150,2 @@
+-						mIconPositions[25 + k].X += mPosition.X;
++						mIconPositions[mMagickIconOffset + k].X += mPosition.X;
+-						mIconPositions[25 + k].Y += mPosition.Y;
++						mIconPositions[mMagickIconOffset + k].Y += mPosition.Y;
+@@ -155,1 +161,1 @@
+-						mInstancingEffect.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 156, 2 * mMagickElementsToRender);
++						mInstancingEffect.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, mMagickPrimitiveStart, 2 * mMagickElementsToRender);
+@@ -164,2 +170,2 @@
+-						mIconPositions[25 + m].X += mPosition.X;
++						mIconPositions[mMagickIconOffset + m].X += mPosition.X;
+-						mIconPositions[25 + m].Y += mPosition.Y;
++						mIconPositions[mMagickIconOffset + m].Y += mPosition.Y;
+@@ -174,1 +180,1 @@
+-						mInstancingEffect.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, 156, 2 * mMagickElementsToRender);
++						mInstancingEffect.GraphicsDevice.DrawPrimitives(PrimitiveType.TriangleList, mMagickPrimitiveStart, 2 * mMagickElementsToRender);
+@@ -286,8 +292,7 @@
+-		private static readonly Vector2[] sIconTargets = new Vector2[5]
+-		{
+-			new Vector2(-50f, 44f),
+-			new Vector2(-25f, 44f),
+-			new Vector2(0f, 44f),
+-			new Vector2(25f, 44f),
+-			new Vector2(50f, 44f)
+-		};
++		private const int sSpellIconColumns = 10;
++
++		private const float sSpellIconSpacing = 25f;
++
++		private const int sIconRenderCapacityMultiplier = 5;
++
++		private static readonly Vector2[] sIconTargets = CreateIconTargets();
+@@ -333,0 +338,24 @@
++		private int MaxVisibleIconIndex => Math.Min(mMaxIconCount, sIconTargets.Length) - 1;
++
++		private static Vector2[] CreateIconTargets()
++		{
++			Vector2[] array = new Vector2[SpellManager.SPELL_QUEUE_CAPACITY];
++			float num = (sSpellIconColumns - 1) * sSpellIconSpacing * -0.5f;
++			for (int i = 0; i < array.Length; i++)
++			{
++				int num2 = i % sSpellIconColumns;
++				int num3 = i / sSpellIconColumns;
++				array[i] = new Vector2(num + (float)num2 * sSpellIconSpacing, 32f + (float)num3 * sSpellIconSpacing);
++			}
++			return array;
++		}
++
++		private int ClampIconIndex(int iIndex)
++		{
++			if (MaxVisibleIconIndex < 0)
++			{
++				return -1;
++			}
++			return Math.Min(Math.Max(iIndex, 0), MaxVisibleIconIndex);
++		}
++
+@@ -369,2 +398,2 @@
+-			mMaxIcons = 25;
+-			mMaxIconCount = 5;
++			mMaxIcons = SpellManager.SPELL_QUEUE_CAPACITY * sIconRenderCapacityMultiplier;
++			mMaxIconCount = SpellManager.SPELL_QUEUE_CAPACITY;
+@@ -445,1 +474,1 @@
+-				RenderData renderData = new RenderData(mMaxIcons + sMaxMagickIconCount);
++				RenderData renderData = new RenderData(mMaxIcons + sMaxMagickIconCount, mMaxIcons);
+@@ -462,1 +491,1 @@
+-			mMaxIconCount = iCapacity;
++			mMaxIconCount = Math.Min(Math.Max(iCapacity, 0), sIconTargets.Length);
+@@ -467,1 +496,1 @@
+-			if (mIconCount > 5 || GlobalSettings.Instance.SpellWheel == SettingOptions.Off)
++			if (mIconCount + mCombineIconCount >= mMaxIcons)
+@@ -493,1 +522,1 @@
+-				icon.Index = 4;
++				icon.Index = MaxVisibleIconIndex;
+@@ -496,1 +525,1 @@
+-					array[j].Index = Math.Min(Math.Max(array[j].Index - 1, 5 - mMaxIconCount), 4);
++					array[j].Index = ClampIconIndex(array[j].Index - 1);
+@@ -508,1 +537,1 @@
+-			else if (mIconCount <= 4)
++			else if (mIconCount < sIconTargets.Length)
+@@ -522,4 +551,0 @@
+-			if (GlobalSettings.Instance.SpellWheel == SettingOptions.Off)
+-			{
+-				return;
+-			}
+@@ -545,0 +570,4 @@
++			if (iSourceIndex < 0 || iSourceIndex >= array.Length)
++			{
++				return;
++			}
+@@ -552,1 +581,1 @@
+-					array[k].Index = Math.Min(Math.Max(array[k].Index + 1, 5 - mMaxIconCount), 4);
++					array[k].Index = ClampIconIndex(array[k].Index + 1);
+@@ -557,1 +586,1 @@
+-				throw new Exception();
++				return;
+@@ -562,0 +591,4 @@
++			if (num >= mCombineIcons.Length || mIconCount + mCombineIconCount >= mMaxIcons)
++			{
++				return;
++			}
+@@ -568,4 +601,0 @@
+-			if (GlobalSettings.Instance.SpellWheel == SettingOptions.Off)
+-			{
+-				return;
+-			}
+@@ -598,1 +627,1 @@
+-					array[k].Index = Math.Min(Math.Max(array[k].Index + 1, 5 - mMaxIconCount), 4);
++					array[k].Index = ClampIconIndex(array[k].Index + 1);
+@@ -605,0 +634,4 @@
++			if (num >= mCombineIcons.Length || mIconCount + mCombineIconCount >= mMaxIcons)
++			{
++				return;
++			}
+@@ -779,1 +812,1 @@
+-							array[k].Index = Math.Min(Math.Max(array[k].Index + 1, 5 - mMaxIconCount), 4);
++							array[k].Index = ClampIconIndex(array[k].Index + 1);
+@@ -793,1 +826,1 @@
+-							array2[l].Index = Math.Min(Math.Max(index + 1, 5 - mMaxIconCount), 4);
++							array2[l].Index = ClampIconIndex(index + 1);
+@@ -886,1 +919,1 @@
+-				Icon.CopyToArrays(mIcons, mMaxIcons, mMaxIcons, 5, renderData.mIconPositions, renderData.mScales, renderData.mTextureOffsets, renderData.mColors, renderData.mSaturations);
++				Icon.CopyToArrays(mIcons, mMaxIcons, mMaxIcons, mTomeMagickElements.Length, renderData.mIconPositions, renderData.mScales, renderData.mTextureOffsets, renderData.mColors, renderData.mSaturations);

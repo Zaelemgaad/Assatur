@@ -1,0 +1,14 @@
+@@ -125,0 +125,2 @@
++		public bool ResetLoadoutFromAvatarTemplate { get; set; }
++
+@@ -275,1 +277,1 @@
+-				return mUnlockedMagicks;
++				return ulong.MaxValue;
+@@ -398,1 +400,1 @@
+-			if (GlobalSettings.Instance.SpellWheel == SettingOptions.On && Avatar.PlayState != null && !Avatar.PlayState.IsInCutscene)
++			if (Avatar.PlayState != null && !Avatar.PlayState.IsInCutscene)
+@@ -400,1 +402,1 @@
+-				if ((Controller is DirectInputController) | (Controller is XInputController))
++				if (GlobalSettings.Instance.SpellWheel == SettingOptions.On && ((Controller is DirectInputController) | (Controller is XInputController)))
+@@ -419,0 +421,1 @@
++				ResetLoadoutFromAvatarTemplate = false;
